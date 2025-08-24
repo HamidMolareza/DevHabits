@@ -6,21 +6,14 @@ on:
     branches:
       - main
 
-env:
-  DOTNET_VERSION: "9.x"
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: .
-
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: [${{ env.DOTNET_VERSION }}]
+        dotnet-version: [ 9.x ]
 
     steps:
       - name: Checkout repository
@@ -42,26 +35,23 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore DevHabits.sln
 
-      - name: Clean solution
-        run: dotnet clean DevHabits.sln
-
       - name: Build solution
         run: dotnet build DevHabits.sln --configuration Release --no-restore
 
       - name: Run tests
         run: dotnet test DevHabits.sln --configuration Release --no-restore --no-build --logger "trx;LogFileName=test-results.trx"
 
-      - name: Publish artifacts
-        run: dotnet publish DevHabits.sln --configuration Release --no-restore --no-build --output ./publish
-
 #      - name: Upload test results
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: test-results
-#          path: DevHabits/TestResults/
+#          path: '**/TestResults/*.trx'
 #
-#      - name: Upload published app
+#      - name: Publish project
+#        run: dotnet publish path/to/YourProject.csproj --configuration Release --no-restore --no-build --output ./publish
+#
+#      - name: Upload published artifacts
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: published-app
-#          path: DevHabits/publish/
+#          path: ./publish
