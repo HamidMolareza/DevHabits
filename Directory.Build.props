@@ -12,4 +12,23 @@
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
+    <!-- Apply this package reference to all projects,
+     except Docker Compose projects (.dcproj),
+     since analyzers are not needed there -->
+    <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj'">
+
+        <PackageReference Include="SonarAnalyzer.CSharp">
+
+            <!-- Make the analyzer package private: it won’t propagate to downstream projects -->
+            <PrivateAssets>all</PrivateAssets>
+
+            <!-- Explicitly include all asset types from the package
+                 (most important: analyzers for code analysis during build) -->
+            <IncludeAssets>
+                runtime; build; native; contentfiles; analyzers; buildtransitive
+            </IncludeAssets>
+
+        </PackageReference>
+    </ItemGroup>
+
 </Project>
