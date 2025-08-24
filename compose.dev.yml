@@ -8,3 +8,12 @@ services:
       - "5202:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabits.aspire-dashboard:18889
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+
+  devhabits.aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:9.3
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: true
+    ports:
+      - 18888:18888
