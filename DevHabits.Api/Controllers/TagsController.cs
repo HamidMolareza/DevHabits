@@ -1,14 +1,15 @@
 using DevHabits.Api.Database;
 using DevHabits.Api.Dtos.Tags;
 using DevHabits.Api.Entities;
+using DevHabits.Api.Extensions;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevHabits.Api.Controllers;
 
 [Route("tags")]
-[ApiController]
-public class TagsController(ApplicationDbContext context) : ControllerBase {
+public class TagsController(ApplicationDbContext context) : BaseApiController {
     // GET: Tags
     [HttpGet]
     public async Task<ActionResult<TagsCollectionResponse>> GetTags() {
@@ -27,7 +28,7 @@ public class TagsController(ApplicationDbContext context) : ControllerBase {
             .FirstOrDefaultAsync();
 
         if (tag == null)
-            return NotFound();
+            return NotFoundProblem(resource: "Tag", resourceId: id);
 
         return Ok(tag);
     }
@@ -36,11 +37,11 @@ public class TagsController(ApplicationDbContext context) : ControllerBase {
     [HttpPut("{id}")]
     public async Task<IActionResult> PutTag(string id, UpdateTagRequest tagRequest) {
         if (id != tagRequest.Id)
-            return BadRequest();
+            return BadRequest($"Route id '{id}' does not match body id '{tagRequest.Id}'");
 
         Tag? existingTag = await context.Tags.FindAsync(id);
         if (existingTag == null)
-            return NotFound();
+            return NotFoundProblem(resource: "Tag", resourceId: id);
 
         context.Attach(existingTag);
         existingTag.UpdateFromDto(tagRequest);
@@ -51,11 +52,15 @@ public class TagsController(ApplicationDbContext context) : ControllerBase {
 
     // POST: Tags
     [HttpPost]
-    public async Task<ActionResult<TagResponse>> PostTag(CreateTagRequest tagRequest) {
+    public async Task<ActionResult<TagResponse>> PostTag(CreateTagRequest tagRequest,
+        CreateTagRequestValidator validator) {
+        await validator.ValidateAndThrowAsync(tagRequest);
+
         Tag tag = tagRequest.ToEntity();
 
         if (await context.Tags.AnyAsync(t => EF.Functions.Like(t.Name, tag.Name))) {
-            return Conflict(new { message = "A tag with the same name already exists." });
+            return ConflictProblem(
+                detail: $"A tag with the name '{tag.Name}' already exists.");
         }
 
         context.Tags.Add(tag);
@@ -74,7 +79,7 @@ public class TagsController(ApplicationDbContext context) : ControllerBase {
         }
         catch (DbUpdateException) {
             if (!await context.Tags.AnyAsync(t => t.Id == id))
-                return NotFound();
+                return NotFoundProblem(resource: "Tag", resourceId: id);
             throw;
         }
 

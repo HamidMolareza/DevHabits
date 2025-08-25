@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using DevHabits.Api.Database;
 using DevHabits.Api.Dtos.Habits;
 using DevHabits.Api.Entities;
+using DevHabits.Api.Extensions;
 
 namespace DevHabits.Api.Controllers;
 
 [Route("habits")]
-[ApiController]
-public class HabitsController(ApplicationDbContext context) : ControllerBase {
+public class HabitsController(ApplicationDbContext context) : BaseApiController {
     // GET: Habits
     [HttpGet]
     public async Task<ActionResult<HabitsCollectionResponse>> GetHabits() {
@@ -29,7 +29,7 @@ public class HabitsController(ApplicationDbContext context) : ControllerBase {
             .FirstOrDefaultAsync();
 
         if (habit == null)
-            return NotFound();
+            return NotFoundProblem(resource: "Habit", resourceId: id);
 
         return habit;
     }
@@ -38,11 +38,11 @@ public class HabitsController(ApplicationDbContext context) : ControllerBase {
     [HttpPut("{id}")]
     public async Task<IActionResult> PutHabit(string id, UpdateHabitRequest habitRequest) {
         if (id != habitRequest.Id)
-            return BadRequest();
+            return BadRequestProblem($"Route id '{id}' does not match body id '{habitRequest.Id}'");
 
         Habit? existingHabit = await context.Habits.FindAsync(id);
         if (existingHabit == null)
-            return NotFound();
+            return NotFoundProblem(resource: "Habit", resourceId: id);
 
         context.Attach(existingHabit);
 
@@ -73,7 +73,7 @@ public class HabitsController(ApplicationDbContext context) : ControllerBase {
         }
         catch (DbUpdateException) {
             if (!await context.Habits.AnyAsync(habit => habit.Id == id))
-                return NotFound();
+                return NotFoundProblem(resource: "Habit", resourceId: id);
             throw;
         }
 
