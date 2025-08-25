@@ -11,6 +11,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabits.aspire-dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - ConnectionStrings__Default=Server=devhabits.sqlserver;Database=DevHabits;User Id=sa;Password=zewrnumqdK_Strong23@Password;TrustServerCertificate=True;
+    depends_on:
+      - devhabits.aspire-dashboard
+      - devhabits.sqlserver
 
   devhabits.aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:9.3
