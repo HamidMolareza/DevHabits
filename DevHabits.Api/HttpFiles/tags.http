@@ -1,0 +1,31 @@
+@DevHabits_Api_HostAddress = http://localhost:5202
+
+GET {{DevHabits_Api_HostAddress}}/tags/
+Accept: application/json
+
+###
+GET {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+Accept: application/json
+
+###
+POST {{DevHabits_Api_HostAddress}}/tags/
+Content-Type: application/json
+
+{
+  "name": "Tag 1",
+  "description": "Sample tag"
+}
+
+###
+PUT {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+Content-Type: application/json
+
+{
+  "id": "t_0198e049-20c8-747a-9f9d-e82495df2843",
+  "name": "Tag 2",
+  "description": "Sample tag 2"
+}
+
+###
+DELETE {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+Accept: application/json

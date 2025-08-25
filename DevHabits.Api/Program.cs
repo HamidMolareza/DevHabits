@@ -14,7 +14,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("default"),
         mssqlOptions => mssqlOptions.MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Application)
-    )
+    ).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
 );
 
 builder.Services.AddOpenTelemetryExtensions(builder.Environment.ApplicationName);

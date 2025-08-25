@@ -1,0 +1,59 @@
+@DevHabits_Api_HostAddress = http://localhost:5202
+
+GET {{DevHabits_Api_HostAddress}}/habits/
+Accept: application/json
+
+###
+GET {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+Accept: application/json
+
+###
+POST {{DevHabits_Api_HostAddress}}/habits/
+Content-Type: application/json
+
+{
+  "name": "Read Books",
+  "description": "Read at least 20 pages daily",
+  "type": 0,
+  "frequency": {
+    "type": 1,
+    "timesPerPeriod": 1
+  },
+  "target": {
+    "value": 20,
+    "unit": "pages"
+  },
+  "endDate": "2025-12-31",
+  "milestone": {
+    "target": 100,
+    "current": 0
+  }
+}
+
+###
+PUT {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+Content-Type: application/json
+
+{
+  "id": "h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d",
+  "name": "Read Books 2",
+  "description": "Read at least 20 pages daily 2",
+  "type": 0,
+  "frequency": {
+    "type": 1,
+    "timesPerPeriod": 1
+  },
+  "target": {
+    "value": 20,
+    "unit": "pages"
+  },
+  "endDate": "2025-12-31",
+  "milestone": {
+    "target": 100,
+    "current": 0
+  }
+}
+
+###
+DELETE {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+Accept: application/json
