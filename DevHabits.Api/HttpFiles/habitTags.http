@@ -1,0 +1,11 @@
+@DevHabits_Api_HostAddress = http://localhost:5202
+@HabitsId = h_0198e275-784b-7735-ba6b-f3b722cf64ab
+@TagId = t_0198e04b-7ce7-7dba-955d-8ec08a00bee0
+
+###
+PUT {{DevHabits_Api_HostAddress}}/habits/{{HabitsId}}/tags/{{TagId}}
+Content-Type: application/json
+
+###
+DELETE {{DevHabits_Api_HostAddress}}/habits/{{HabitsId}}/tags/{{TagId}}
+Accept: application/json

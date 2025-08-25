@@ -1,12 +1,12 @@
 namespace DevHabits.Api.Entities;
 
 public sealed class Habit {
-    public string Id { get; set; }
+    public required string Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public HabitType Type { get; set; }
-    public Frequency Frequency { get; set; }
-    public Target Target { get; set; }
+    public Frequency Frequency { get; set; } = new();
+    public Target Target { get; set; } = null!;
     public HabitStatus Status { get; set; }
     public bool IsArchived { get; set; }
     public DateOnly? EndDate { get; set; }
@@ -14,6 +14,8 @@ public sealed class Habit {
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public DateTime? LastCompletedAtUtc { get; set; }
+
+    public ICollection<HabitTag> HabitTags { get; set; } = null!;
 }
 
 public enum HabitType {
@@ -42,7 +44,7 @@ public enum FrequencyType {
 
 public sealed class Target {
     public int Value { get; set; }
-    public string Unit { get; set; }
+    public required string Unit { get; set; }
 }
 
 public sealed class Milestone {

@@ -4,8 +4,8 @@ using DevHabits.Api.Entities;
 namespace DevHabits.Api.Dtos.Tags;
 
 internal static class TagQueries {
-    public static Expression<Func<Tag, TagDto>> ProjectToDto() {
-        return t => new TagDto {
+    public static Expression<Func<Tag, TagResponse>> ProjectToDto() {
+        return t => new TagResponse {
             Id = t.Id,
             Name = t.Name,
             Description = t.Description,

@@ -11,28 +11,33 @@ namespace DevHabits.Api.Controllers;
 public class HabitsController(ApplicationDbContext context) : ControllerBase {
     // GET: Habits
     [HttpGet]
-    public async Task<ActionResult<HabitsCollectionDto>> GetHabits() {
-        List<HabitDto> habitDtos = await context.Habits
+    public async Task<ActionResult<HabitsCollectionResponse>> GetHabits() {
+        List<HabitResponse> habitDtos = await context.Habits
             .Select(HabitQueries.ProjectToDto())
             .ToListAsync();
-        return new HabitsCollectionDto { Data = habitDtos };
+        return new HabitsCollectionResponse { Data = habitDtos };
     }
 
     // GET: Habits/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<HabitDto>> GetHabit(string id) {
-        Habit? habit = await context.Habits.FindAsync(id);
+    public async Task<ActionResult<HabitWithTagsResponse>> GetHabit(string id) {
+        HabitWithTagsResponse? habit = await context.Habits
+            .Where(habit => habit.Id == id)
+            .Include(habit => habit.HabitTags)
+            .ThenInclude(ht => ht.Tag)
+            .Select(HabitQueries.ProjectToHabitWithTagsDto())
+            .FirstOrDefaultAsync();
 
         if (habit == null)
             return NotFound();
 
-        return habit.ToDto();
+        return habit;
     }
 
     // PUT: Habits/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutHabit(string id, UpdateHabitDto habitDto) {
-        if (id != habitDto.Id)
+    public async Task<IActionResult> PutHabit(string id, UpdateHabitRequest habitRequest) {
+        if (id != habitRequest.Id)
             return BadRequest();
 
         Habit? existingHabit = await context.Habits.FindAsync(id);
@@ -41,7 +46,7 @@ public class HabitsController(ApplicationDbContext context) : ControllerBase {
 
         context.Attach(existingHabit);
 
-        existingHabit.UpdateFromDto(habitDto);
+        existingHabit.UpdateFromDto(habitRequest);
         await context.SaveChangesAsync();
 
         return NoContent();
@@ -49,8 +54,8 @@ public class HabitsController(ApplicationDbContext context) : ControllerBase {
 
     // POST: Habits
     [HttpPost]
-    public async Task<ActionResult<HabitDto>> PostHabit([FromBody] CreateHabitDto habitDto) {
-        Habit habit = habitDto.ToEntity();
+    public async Task<ActionResult<HabitResponse>> PostHabit([FromBody] CreateHabitRequest habitRequest) {
+        Habit habit = habitRequest.ToEntity();
 
         context.Habits.Add(habit);
         await context.SaveChangesAsync();

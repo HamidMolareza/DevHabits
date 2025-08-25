@@ -4,7 +4,7 @@ GET {{DevHabits_Api_HostAddress}}/tags/
 Accept: application/json
 
 ###
-GET {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+GET {{DevHabits_Api_HostAddress}}/tags/t_0198e21f-457b-7959-a22c-b7ec0dbc7c40
 Accept: application/json
 
 ###
@@ -17,15 +17,15 @@ Content-Type: application/json
 }
 
 ###
-PUT {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+PUT {{DevHabits_Api_HostAddress}}/tags/t_0198e21f-457b-7959-a22c-b7ec0dbc7c40
 Content-Type: application/json
 
 {
-  "id": "t_0198e049-20c8-747a-9f9d-e82495df2843",
-  "name": "Tag 2",
+  "id": "t_0198e21f-457b-7959-a22c-b7ec0dbc7c40",
+  "name": "Tag ag",
   "description": "Sample tag 2"
 }
 
 ###
-DELETE {{DevHabits_Api_HostAddress}}/tags/t_0198e049-20c8-747a-9f9d-e82495df2843
+DELETE {{DevHabits_Api_HostAddress}}/tags/t_0198e21f-457b-7959-a22c-b7ec0dbc7c40
 Accept: application/json

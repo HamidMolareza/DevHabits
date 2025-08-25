@@ -4,6 +4,7 @@ using DevHabits.Api.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DevHabits.Api.Migrations.Application
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250825152250_Add HabitTags Relation")]
+    partial class AddHabitTagsRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,15 +70,10 @@ namespace DevHabits.Api.Migrations.Application
             modelBuilder.Entity("DevHabits.Api.Entities.HabitTags", b =>
                 {
                     b.Property<string>("HabitId")
-                        .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("TagId")
-                        .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("HabitId", "TagId");
 
@@ -185,31 +183,17 @@ namespace DevHabits.Api.Migrations.Application
 
             modelBuilder.Entity("DevHabits.Api.Entities.HabitTags", b =>
                 {
-                    b.HasOne("DevHabits.Api.Entities.Habit", "Habit")
-                        .WithMany("HabitTags")
+                    b.HasOne("DevHabits.Api.Entities.Habit", null)
+                        .WithMany()
                         .HasForeignKey("HabitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DevHabits.Api.Entities.Tag", "Tag")
-                        .WithMany("HabitTags")
+                    b.HasOne("DevHabits.Api.Entities.Tag", null)
+                        .WithMany()
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Habit");
-
-                    b.Navigation("Tag");
-                });
-
-            modelBuilder.Entity("DevHabits.Api.Entities.Habit", b =>
-                {
-                    b.Navigation("HabitTags");
-                });
-
-            modelBuilder.Entity("DevHabits.Api.Entities.Tag", b =>
-                {
-                    b.Navigation("HabitTags");
                 });
 #pragma warning restore 612, 618
         }

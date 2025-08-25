@@ -4,7 +4,7 @@ GET {{DevHabits_Api_HostAddress}}/habits/
 Accept: application/json
 
 ###
-GET {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+GET {{DevHabits_Api_HostAddress}}/habits/h_0198e275-784b-7735-ba6b-f3b722cf64ab
 Accept: application/json
 
 ###
@@ -12,8 +12,8 @@ POST {{DevHabits_Api_HostAddress}}/habits/
 Content-Type: application/json
 
 {
-  "name": "Read Books",
-  "description": "Read at least 20 pages daily",
+  "name": "Solve Algorithm Problems",
+  "description": "Solve at least one algorithm problem daily",
   "type": 0,
   "frequency": {
     "type": 1,
@@ -31,11 +31,11 @@ Content-Type: application/json
 }
 
 ###
-PUT {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+PUT {{DevHabits_Api_HostAddress}}/habits/h_0198e275-784b-7735-ba6b-f3b722cf64ab
 Content-Type: application/json
 
 {
-  "id": "h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d",
+  "id": "h_0198e275-784b-7735-ba6b-f3b722cf64ab",
   "name": "Read Books 2",
   "description": "Read at least 20 pages daily 2",
   "type": 0,
@@ -55,5 +55,5 @@ Content-Type: application/json
 }
 
 ###
-DELETE {{DevHabits_Api_HostAddress}}/habits/h_0198e022-0ee3-76bf-b607-5df2c1fc3b6d
+DELETE {{DevHabits_Api_HostAddress}}/habits/h_0198e275-784b-7735-ba6b-f3b722cf64ab
 Accept: application/json
