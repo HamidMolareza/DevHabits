@@ -1,7 +1,7 @@
-using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+using DevHabits.Api.Database;
+using DevHabits.Api.Extensions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -11,21 +11,13 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Configure OpenTelemetry for distributed tracing and metrics
-builder.Services.AddOpenTelemetry()
-    // Set resource information (service name)
-    .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
-    // Enable tracing with HTTP client and ASP.NET Core instrumentation
-    .WithTracing(tracing => tracing
-        .AddHttpClientInstrumentation()
-        .AddAspNetCoreInstrumentation())
-    // Enable metrics with HTTP client, ASP.NET Core, and runtime instrumentation
-    .WithMetrics(metrics => metrics
-        .AddHttpClientInstrumentation()
-        .AddAspNetCoreInstrumentation()
-        .AddRuntimeInstrumentation())
-    // Export telemetry data using OTLP protocol
-    .UseOtlpExporter();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("default"),
+        mssqlOptions => mssqlOptions.MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Application)
+    )
+);
+
+builder.Services.AddOpenTelemetryExtensions(builder.Environment.ApplicationName);
 
 builder.Logging.AddOpenTelemetry(options => {
     options.IncludeScopes = true;
@@ -35,8 +27,11 @@ builder.Logging.AddOpenTelemetry(options => {
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment()) {
     app.MapOpenApi();
+
+    await app.Services.ApplyMigrationsAsync();
+}
 
 app.UseHttpsRedirection();
 

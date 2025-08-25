@@ -10,6 +10,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://devhabits.aspire-dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - ConnectionStrings__Default=Server=devhabits.sqlserver;Database=DevHabits;User Id=sa;Password=zewrnumqdK_Strong23@Password;TrustServerCertificate=True;
 
   devhabits.aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:9.3
@@ -17,3 +18,15 @@ services:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: true
     ports:
       - 18888:18888
+        
+  devhabits.sqlserver:
+    image: "mcr.microsoft.com/mssql/server"
+    environment:
+      SA_PASSWORD: "zewrnumqdK_Strong23@Password"
+      ACCEPT_EULA: "Y"
+    restart: unless-stopped
+    ports:
+      - "11433:1433"
+    volumes:
+      - './.docker-data/mssql/data:/var/opt/mssql/data'
+#      - './.docker-data/mssql/log:/var/opt/mssql/log'

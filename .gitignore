@@ -6,4 +6,4 @@ riderModule.iml
 .vscode
 .idea
 *.DotSettings.user
-
+.docker-data
