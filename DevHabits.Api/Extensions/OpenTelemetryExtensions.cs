@@ -1,3 +1,5 @@
+#pragma warning disable IDE0055
+
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
