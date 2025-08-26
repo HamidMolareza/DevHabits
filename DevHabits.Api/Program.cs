@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using DevHabits.Api.Database;
 using DevHabits.Api.Extensions;
+using DevHabits.Api.Middlewares;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,8 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 builder.Services.AddProblemDetails(options => {
     options.CustomizeProblemDetails = context => {
         context.ProblemDetails.Instance =
@@ -25,7 +28,7 @@ builder.Services.AddProblemDetails(options => {
         context.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
     };
 });
-
+builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("default"),
@@ -50,6 +53,8 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
 
 app.UseAuthorization();
 
