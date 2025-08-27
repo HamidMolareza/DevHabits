@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using DevHabits.Api.Database;
-using DevHabits.Api.Extensions;
-using DevHabits.Api.Helpers.Sort;
+using DevHabits.Api.Libraries.Sort;
 using DevHabits.Api.Middlewares;
+using DevHabits.Api.Shared.Database;
+using DevHabits.Api.Shared.ServiceCollections;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
