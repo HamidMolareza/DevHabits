@@ -4,6 +4,10 @@ GET {{DevHabits_Api_HostAddress}}/tags/
 Accept: application/json
 
 ###
+GET {{DevHabits_Api_HostAddress}}/tags?sort=CreatedAt asc
+Accept: application/json
+
+###
 GET {{DevHabits_Api_HostAddress}}/tags/t_0198e21f-457b-7959-a22c-b7ec0dbc7c40
 Accept: application/json
 

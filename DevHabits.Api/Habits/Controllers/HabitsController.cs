@@ -12,7 +12,7 @@ namespace DevHabits.Api.Habits.Controllers;
 [Route("habits")]
 public class HabitsController(
     ApplicationDbContext context,
-    ISortOptionsProvider<Habit> sortProvider
+    ISortOptionsProvider<Habit> habitSort
 ) : BaseApiController {
     // GET: Habits
     [HttpGet]
@@ -20,7 +20,7 @@ public class HabitsController(
         string? sort,
         CancellationToken cancellationToken) {
         List<HabitResponse> habitDtos = await context.Habits
-            .ApplySort(sort, sortProvider.GetOptions())
+            .ApplySort(sort, habitSort.GetOptions())
             .Select(HabitQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
         return new HabitsCollectionResponse { Data = habitDtos };

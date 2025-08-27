@@ -1,5 +1,6 @@
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.BaseApiControllers;
+using DevHabits.Api.Shared.Libraries.Sort;
 using DevHabits.Api.Tags.Dtos;
 using DevHabits.Api.Tags.Entities;
 using DevHabits.Api.Tags.Mappings;
@@ -9,11 +10,16 @@ using Microsoft.EntityFrameworkCore;
 namespace DevHabits.Api.Tags.Controllers;
 
 [Route("tags")]
-public class TagsController(ApplicationDbContext context) : BaseApiController {
+public class TagsController(ApplicationDbContext context, ISortOptionsProvider<Tag> tagSortProvider)
+    : BaseApiController {
     // GET: Tags
     [HttpGet]
-    public async Task<ActionResult<TagsCollectionResponse>> GetTags(CancellationToken cancellationToken) {
+    public async Task<ActionResult<TagsCollectionResponse>> GetTags(
+        string? sort,
+        CancellationToken cancellationToken
+    ) {
         List<TagResponse> tagDtos = await context.Tags
+            .ApplySort(sort, tagSortProvider.GetOptions())
             .Select(TagQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
         return new TagsCollectionResponse { Data = tagDtos };
