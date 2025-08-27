@@ -1,7 +1,8 @@
-using DevHabits.Api.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Database;
+using DevHabits.Api.Shared.Libraries.BaseApiControllers;
 using DevHabits.Api.Tags.Dtos;
 using DevHabits.Api.Tags.Entities;
+using DevHabits.Api.Tags.Mappings;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Shared.Libraries.Sort;
 
 public sealed class SortExceptionHandler(
     IProblemDetailsService problemDetailsService) : IExceptionHandler {

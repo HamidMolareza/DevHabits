@@ -1,8 +1,9 @@
 using DevHabits.Api.Habits.Dtos;
 using DevHabits.Api.Habits.Entities;
-using DevHabits.Api.Libraries.BaseApiControllers;
-using DevHabits.Api.Libraries.Sort;
+using DevHabits.Api.Habits.Mappings;
 using DevHabits.Api.Shared.Database;
+using DevHabits.Api.Shared.Libraries.BaseApiControllers;
+using DevHabits.Api.Shared.Libraries.Sort;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

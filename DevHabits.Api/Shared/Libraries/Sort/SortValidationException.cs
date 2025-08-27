@@ -1,3 +1,3 @@
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Shared.Libraries.Sort;
 
 public class SortValidationException(string message) : Exception(message);

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 
-namespace DevHabits.Api.Libraries.BaseApiControllers;
+namespace DevHabits.Api.Shared.Libraries.BaseApiControllers;
 
 public abstract partial class BaseApiController {
     #region Obsolete overrides (Error results)

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Shared.Libraries.Sort;
 
 public static class SortOptionsServiceCollectionExtensions {
     public static IServiceCollection AddSortOptionsFromAssemblyContaining<T>(this IServiceCollection services) {

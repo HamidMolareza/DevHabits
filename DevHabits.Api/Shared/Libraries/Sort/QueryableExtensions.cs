@@ -1,6 +1,6 @@
 using System.Linq.Dynamic.Core;
 
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Shared.Libraries.Sort;
 
 public static class QueryableExtensions {
     /// <summary>

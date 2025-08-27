@@ -1,4 +1,4 @@
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Shared.Libraries.Sort;
 
 public interface ISortOptionsProvider<T> {
     SortOptions GetOptions();

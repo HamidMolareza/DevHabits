@@ -1,6 +1,7 @@
-﻿using DevHabits.Api.Habits.Entities;
+﻿using DevHabits.Api.Habits.Dtos;
+using DevHabits.Api.Habits.Entities;
 
-namespace DevHabits.Api.Habits.Dtos;
+namespace DevHabits.Api.Habits.Mappings;
 
 internal static class HabitMappings {
     public static Habit ToEntity(this CreateHabitRequest request) {

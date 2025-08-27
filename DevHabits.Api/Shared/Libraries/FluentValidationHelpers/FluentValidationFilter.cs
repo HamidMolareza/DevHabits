@@ -3,7 +3,7 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace DevHabits.Api.Libraries.FluentValidationHelpers;
+namespace DevHabits.Api.Shared.Libraries.FluentValidationHelpers;
 
 public sealed class FluentValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFilter {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next) {

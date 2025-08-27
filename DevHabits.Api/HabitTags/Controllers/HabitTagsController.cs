@@ -1,7 +1,7 @@
 using DevHabits.Api.Habits.Entities;
 using DevHabits.Api.HabitTags.Entities;
-using DevHabits.Api.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Database;
+using DevHabits.Api.Shared.Libraries.BaseApiControllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,6 +1,7 @@
-﻿using DevHabits.Api.Tags.Entities;
+﻿using DevHabits.Api.Tags.Dtos;
+using DevHabits.Api.Tags.Entities;
 
-namespace DevHabits.Api.Tags.Dtos;
+namespace DevHabits.Api.Tags.Mappings;
 
 internal static class TagMappings {
     public static Tag ToEntity(this CreateTagRequest request) {

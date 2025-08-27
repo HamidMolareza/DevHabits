@@ -1,6 +1,7 @@
 using DevHabits.Api.Habits.Entities;
+using DevHabits.Api.Shared.Libraries.Sort;
 
-namespace DevHabits.Api.Libraries.Sort;
+namespace DevHabits.Api.Habits.Options;
 
 public sealed class HabitSortOptionsProvider : ISortOptionsProvider<Habit> {
     private static SortOptions Options { get; } = new(
@@ -11,7 +12,7 @@ public sealed class HabitSortOptionsProvider : ISortOptionsProvider<Habit> {
             ["endDate"] = nameof(Habit.EndDate),
             ["frequencyType"] = $"{nameof(Habit.Frequency)}.{nameof(Habit.Frequency.Type)}",
         },
-        defaultSortAlias: "id asc"
+        defaultSortAlias: $"{nameof(Habit.Id)} asc"
     );
 
     public SortOptions GetOptions() => Options;

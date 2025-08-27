@@ -1,7 +1,7 @@
-using DevHabits.Api.Libraries.BaseApiControllers.CustomProblemDetails;
+using DevHabits.Api.Shared.Libraries.BaseApiControllers.CustomProblemDetails;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DevHabits.Api.Libraries.BaseApiControllers;
+namespace DevHabits.Api.Shared.Libraries.BaseApiControllers;
 
 [ApiController]
 public abstract partial class BaseApiController : ControllerBase {

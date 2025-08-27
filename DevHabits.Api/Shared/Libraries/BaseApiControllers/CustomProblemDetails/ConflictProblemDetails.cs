@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace DevHabits.Api.Libraries.BaseApiControllers.CustomProblemDetails;
+namespace DevHabits.Api.Shared.Libraries.BaseApiControllers.CustomProblemDetails;
 
 public class ConflictProblemDetails : ProblemDetails {
     public string? ConflictWithId { get; set; }
