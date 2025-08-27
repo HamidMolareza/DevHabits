@@ -4,6 +4,10 @@ GET {{DevHabits_Api_HostAddress}}/habits/
 Accept: application/json
 
 ###
+GET {{DevHabits_Api_HostAddress}}/habits?sort=frequencyType desc,name asc,id desc
+Accept: application/json
+
+###
 GET {{DevHabits_Api_HostAddress}}/habits/h_0198e275-784b-7735-ba6b-f3b722cf64ab
 Accept: application/json
 
@@ -16,7 +20,7 @@ Content-Type: application/json
   "description": "Solve at least one algorithm problem daily",
   "type": 0,
   "frequency": {
-    "type": 1,
+    "type": 2,
     "timesPerPeriod": 1
   },
   "target": {

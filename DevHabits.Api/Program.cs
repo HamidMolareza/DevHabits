@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using DevHabits.Api.Database;
 using DevHabits.Api.Extensions;
+using DevHabits.Api.Helpers.Sort;
 using DevHabits.Api.Middlewares;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;
@@ -14,6 +15,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddSortOptionsFromAssemblyContaining<HabitSortOptionsProvider>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

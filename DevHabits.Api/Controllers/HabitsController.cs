@@ -1,17 +1,28 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DevHabits.Api.Database;
 using DevHabits.Api.Dtos.Habits;
 using DevHabits.Api.Entities;
+using DevHabits.Api.Helpers.Sort;
 
 namespace DevHabits.Api.Controllers;
 
 [Route("habits")]
-public class HabitsController(ApplicationDbContext context) : BaseApiController {
+public class HabitsController(
+    ApplicationDbContext context,
+    ISortOptionsProvider<Habit> sortProvider
+) : BaseApiController {
     // GET: Habits
     [HttpGet]
-    public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(CancellationToken cancellationToken) {
-        List<HabitResponse> habitDtos = await context.Habits
+    public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(
+        string? sort,
+        CancellationToken cancellationToken) {
+        IQueryable<Habit> query = context.Habits.AsQueryable();
+        if (!query.TryApplySort(sort, sortProvider.GetOptions(), out IQueryable<Habit> sorted))
+            return BadRequestProblem($"Invalid sort query: {sort}");
+
+        List<HabitResponse> habitDtos = await sorted
             .Select(HabitQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
         return new HabitsCollectionResponse { Data = habitDtos };
