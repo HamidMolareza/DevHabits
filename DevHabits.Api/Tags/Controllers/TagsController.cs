@@ -2,7 +2,6 @@ using DevHabits.Api.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Tags.Dtos;
 using DevHabits.Api.Tags.Entities;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -54,9 +53,7 @@ public class TagsController(ApplicationDbContext context) : BaseApiController {
     // POST: Tags
     [HttpPost]
     public async Task<ActionResult<TagResponse>> PostTag(CreateTagRequest tagRequest,
-        CreateTagRequestValidator validator, CancellationToken cancellationToken) {
-        await validator.ValidateAndThrowAsync(tagRequest, cancellationToken);
-
+        CancellationToken cancellationToken) {
         Tag tag = tagRequest.ToEntity();
 
         if (await context.Tags.AnyAsync(t => EF.Functions.Like(t.Name, tag.Name), cancellationToken)) {

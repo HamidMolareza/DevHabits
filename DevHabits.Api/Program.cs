@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DevHabits.Api.Libraries.FluentValidationHelpers;
 using DevHabits.Api.Libraries.Sort;
 using DevHabits.Api.Middlewares;
 using DevHabits.Api.Shared.Database;
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddControllers(options => {
+    options.Filters.Add<FluentValidationFilter>();
+});
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 builder.Services.AddSortOptionsFromAssemblyContaining<HabitSortOptionsProvider>();
