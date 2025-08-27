@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace DevHabits.Api.Controllers;
 
@@ -93,26 +94,49 @@ public abstract class BaseApiController : ControllerBase {
         );
     }
 
-    // Obsolete overrides
-    [Obsolete("Use NotFoundProblem(...) instead.")]
-    [NonAction]
-    protected new NotFoundResult NotFound() => base.NotFound();
-
-    [Obsolete("Use ConflictProblem(...) instead.")]
-    [NonAction]
-    protected new ConflictResult Conflict() => base.Conflict();
+    #region Obsolete overrides (Error results)
 
     [Obsolete("Use BadRequestProblem(...) instead.")]
     [NonAction]
-    protected new BadRequestResult BadRequest() => base.BadRequest();
+    public new BadRequestResult BadRequest() => base.BadRequest();
+
+    [Obsolete("Use BadRequestProblem(...) instead.")]
+    [NonAction]
+    public new BadRequestObjectResult BadRequest([ActionResultObjectValue] object? error)
+        => base.BadRequest(error);
+
+    [Obsolete("Use NotFoundProblem(...) instead.")]
+    [NonAction]
+    public new NotFoundResult NotFound() => base.NotFound();
+
+    [Obsolete("Use NotFoundProblem(...) instead.")]
+    [NonAction]
+    public new NotFoundObjectResult NotFound([ActionResultObjectValue] object? value)
+        => base.NotFound(value);
+
+    [Obsolete("Use ConflictProblem(...) instead.")]
+    [NonAction]
+    public new ConflictResult Conflict() => base.Conflict();
+
+    [Obsolete("Use ConflictProblem(...) instead.")]
+    [NonAction]
+    public new ConflictObjectResult Conflict([ActionResultObjectValue] object? error)
+        => base.Conflict(error);
 
     [Obsolete("Use UnauthorizedProblem(...) instead.")]
     [NonAction]
-    protected new UnauthorizedResult Unauthorized() => base.Unauthorized();
+    public new UnauthorizedResult Unauthorized() => base.Unauthorized();
+
+    [Obsolete("Use UnauthorizedProblem(...) instead.")]
+    [NonAction]
+    public new UnauthorizedObjectResult Unauthorized([ActionResultObjectValue] object? value)
+        => base.Unauthorized(value);
 
     [Obsolete("Use ForbiddenProblem(...) instead.")]
     [NonAction]
-    protected new ForbidResult Forbid() => base.Forbid();
+    public new ForbidResult Forbid() => base.Forbid();
+
+    #endregion
 }
 
 public class NotFoundProblemDetails : ProblemDetails {

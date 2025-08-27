@@ -37,7 +37,7 @@ public class TagsController(ApplicationDbContext context) : BaseApiController {
     public async Task<IActionResult> PutTag(string id, UpdateTagRequest tagRequest,
         CancellationToken cancellationToken) {
         if (id != tagRequest.Id)
-            return BadRequest($"Route id '{id}' does not match body id '{tagRequest.Id}'");
+            return BadRequestProblem($"Route id '{id}' does not match body id '{tagRequest.Id}'");
 
         Tag? existingTag = await context.Tags.FindAsync([id], cancellationToken);
         if (existingTag == null)
