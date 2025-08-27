@@ -25,10 +25,10 @@ public static class SortValidator {
             string dir = tokens.Length > 1 ? tokens[1].Trim().ToLowerInvariant() : "asc";
 
             if (!options.AliasToProperty.TryGetValue(alias, out string? propPath))
-                throw new ArgumentException($"Invalid sort field: {alias}");
+                throw new SortValidationException($"Invalid sort field: {alias}");
 
             if (dir is not "asc" and not "desc")
-                throw new ArgumentException($"Invalid sort direction: {dir}");
+                throw new SortValidationException($"Invalid sort direction: {dir}");
 
             mappedParts.Add($"{propPath} {dir}");
         }

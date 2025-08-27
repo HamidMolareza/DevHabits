@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DevHabits.Api.Database;
@@ -18,11 +17,8 @@ public class HabitsController(
     public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(
         string? sort,
         CancellationToken cancellationToken) {
-        IQueryable<Habit> query = context.Habits.AsQueryable();
-        if (!query.TryApplySort(sort, sortProvider.GetOptions(), out IQueryable<Habit> sorted))
-            return BadRequestProblem($"Invalid sort query: {sort}");
-
-        List<HabitResponse> habitDtos = await sorted
+        List<HabitResponse> habitDtos = await context.Habits
+            .ApplySort(sort, sortProvider.GetOptions())
             .Select(HabitQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
         return new HabitsCollectionResponse { Data = habitDtos };

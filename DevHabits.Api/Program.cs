@@ -31,7 +31,9 @@ builder.Services.AddProblemDetails(options => {
         context.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
     };
 });
-builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+builder.Services
+    .AddExceptionHandler<ValidationExceptionHandler>()
+    .AddExceptionHandler<SortExceptionHandler>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("default"),
