@@ -23,7 +23,7 @@ public static class FieldSelector {
     /// var shaped = selector(new UserDto { Name = "Alice", Age = 30 }); // returns { "Name": "Alice" }
     /// </code>
     /// </example>
-    public static bool TryCreateSelector<TDto>(string? fields,
+    public static bool TryCreateIncluder<TDto>(string? fields,
         out Func<TDto, object> selector,
         out string? error) where TDto : class {
         selector = _ => throw new InvalidOperationException("uninitialized");
@@ -47,7 +47,7 @@ public static class FieldSelector {
         // Validate fields and group nested properties
         Dictionary<string, List<string>>? grouped =
             FieldValidator.ValidateFields(tokens, dtoProps, dtoType, out error);
-        if (grouped == null)
+        if (grouped == null!)
             return false;
 
         // Extract ordered unique top-level keys from tokens
@@ -120,7 +120,7 @@ public static class FieldSelector {
         // Validate excluded fields and group nested properties
         Dictionary<string, List<string>>? excludedGrouped =
             FieldValidator.ValidateFields(tokens, dtoProps, dtoType, out error);
-        if (excludedGrouped == null)
+        if (excludedGrouped == null!)
             return false;
 
         // Get all top-level properties in declaration order
@@ -129,7 +129,7 @@ public static class FieldSelector {
 
         // Compute fully excluded tops
         var fullyExcluded = new HashSet<string>(
-            excludedGrouped.Where(kv => kv.Value == null).Select(kv => kv.Key),
+            excludedGrouped.Where(kv => kv.Value == null!).Select(kv => kv.Key),
             StringComparer.OrdinalIgnoreCase);
 
         // Compute ordered tops for inclusion (in property declaration order)
@@ -143,7 +143,7 @@ public static class FieldSelector {
         // Compute included grouped
         var includedGrouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
         foreach (string top in orderedTops) {
-            if (!excludedGrouped.TryGetValue(top, out List<string>? exclNested) || exclNested == null) {
+            if (!excludedGrouped.TryGetValue(top, out List<string>? exclNested) || exclNested == null!) {
                 // Whole property included
                 includedGrouped[top] = null;
                 continue;
@@ -202,32 +202,39 @@ public static class FieldSelector {
         string[] includeTokens = TokenParser.Parse(includeFields);
         string[] excludeTokens = TokenParser.Parse(excludeFields);
 
-        if (includeTokens.Length == 0) {
-            shaper = null!;
-            error = "At least one include field must be specified.";
-            return false;
+        if (includeTokens.Length == 0 && excludeTokens.Length == 0) {
+            shaper = dto => dto;
+            return true;
         }
 
-        if (excludeTokens.Length == 0) {
+        if (includeTokens.Length == 0)
+            return TryCreateExcluder(excludeFields, out shaper, out error);
+
+        if (excludeTokens.Length == 0)
+            return TryCreateIncluder(includeFields, out shaper, out error);
+
+        var common = includeTokens.Intersect(excludeTokens, StringComparer.OrdinalIgnoreCase).ToList();
+        if (common.Count > 0) {
+            error = $"Fields cannot be both included and excluded: {string.Join(", ", common)}";
             shaper = null!;
-            error = "At least one exclude field must be specified.";
             return false;
         }
 
         Type dtoType = typeof(TDto);
         Dictionary<string, PropertyInfo> dtoProps = dtoType.GetPropertiesMap();
 
-        // Validate include and exclude fields
+        // Validate include fields
         Dictionary<string, List<string>>? includedGrouped =
             FieldValidator.ValidateFields(includeTokens, dtoProps, dtoType, out error);
-        if (includedGrouped == null) {
+        if (includedGrouped == null!) {
             shaper = null!;
             return false;
         }
 
+        // Validate exclude fields
         Dictionary<string, List<string>>? excludedGrouped =
             FieldValidator.ValidateFields(excludeTokens, dtoProps, dtoType, out error);
-        if (excludedGrouped == null) {
+        if (excludedGrouped == null!) {
             shaper = null!;
             return false;
         }
@@ -249,12 +256,15 @@ public static class FieldSelector {
             if (!includedGrouped.ContainsKey(top))
                 continue;
 
-            if (excludedGrouped.TryGetValue(top, out List<string>? exclNested) && exclNested == null) {
+            if (excludedGrouped.TryGetValue(top, out List<string>? exclNested) && exclNested == null!) {
                 // Top-level property fully excluded, skip it
-                continue;
+                // continue;
+                error = $"field {token} included but its top-level property '{top}' is fully excluded.";
+                shaper = null!;
+                return false;
             }
 
-            if (includedGrouped[top] == null) {
+            if (includedGrouped[top] == null!) {
                 // Whole top-level property included
                 if (exclNested != null) {
                     // Exclude specific nested fields

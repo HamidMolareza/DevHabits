@@ -21,7 +21,7 @@ public static class ShapeDataExtensions {
             return true;
         }
 
-        if (!FieldSelector.TryCreateSelector(fields, out Func<TDto, object> selector, out error)) {
+        if (!FieldSelector.TryCreateIncluder(fields, out Func<TDto, object> selector, out error)) {
             items = null;
             return false;
         }
@@ -72,8 +72,8 @@ public static class ShapeDataExtensions {
     /// <exception cref="ShapeDataException">Thrown if fields are invalid or none remain after exclusion.</exception>
     public static IEnumerable<object> ShapeFields<TDto>(
         this IEnumerable<TDto> source,
-        string includeFields,
-        string excludeFields) where TDto : class {
+        string? includeFields,
+        string? excludeFields) where TDto : class {
         if (!source.TryShapeFields(includeFields, excludeFields, out IEnumerable<object>? items, out string? error))
             throw new ShapeDataException(error ?? "One or more fields are invalid.");
 
@@ -92,21 +92,21 @@ public static class ShapeDataExtensions {
     /// <returns>True if shaping succeeds; otherwise, false.</returns>
     public static bool TryShapeFields<TDto>(
         this IEnumerable<TDto> source,
-        string includeFields,
-        string excludeFields,
+        string? includeFields,
+        string? excludeFields,
         out IEnumerable<object>? items,
         out string? error) where TDto : class {
-        if (string.IsNullOrWhiteSpace(includeFields)) {
-            items = null;
-            error = "Include fields must be specified.";
-            return false;
+        if (string.IsNullOrWhiteSpace(includeFields) && string.IsNullOrWhiteSpace(excludeFields)) {
+            items = source.ToList();
+            error = null;
+            return true;
         }
 
-        if (string.IsNullOrWhiteSpace(excludeFields)) {
-            items = null;
-            error = "Exclude fields must be specified.";
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(includeFields))
+            return source.TryExcludeFields(excludeFields, out items, out error);
+
+        if (string.IsNullOrWhiteSpace(excludeFields))
+            return source.TryIncludeFields(includeFields, out items, out error);
 
         if (!FieldSelector.TryCreateShaper(includeFields, excludeFields, out Func<TDto, object> shaper, out error)) {
             items = null;
