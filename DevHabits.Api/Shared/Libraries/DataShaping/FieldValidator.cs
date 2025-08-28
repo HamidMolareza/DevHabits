@@ -16,7 +16,7 @@ internal static class FieldValidator {
     /// <returns>Grouped dictionary of top-level fields and nested fields, or null if invalid.</returns>
     /// <example>
     /// <code>
-    /// var grouped = FieldValidator.ValidateTopLevelFields(
+    /// var grouped = FieldValidator.ValidateFields(
     ///     new[] { "Name", "Profile.Email" }, FieldSelector.GetPropertiesMap(typeof(UserDto)), typeof(UserDto), out var error);
     /// // grouped["Name"] == null, grouped["Profile"] == ["Email"]
     /// </code>
@@ -27,7 +27,7 @@ internal static class FieldValidator {
         Type dtoType,
         out string? error) {
         var grouped = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        tokens = tokens.Distinct().ToArray();
+        tokens = tokens.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
         foreach (string token in tokens) {
             string[] parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

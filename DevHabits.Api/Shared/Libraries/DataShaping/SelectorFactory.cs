@@ -8,7 +8,7 @@ internal static class SelectorFactory {
     /// Creates a selector function that returns a dictionary of requested fields from a DTO.
     /// </summary>
     /// <typeparam name="TDto">DTO type.</typeparam>
-    /// <param name="tokens">Field tokens.</param>
+    /// <param name="orderedKeys">Ordered list of top-level keys to include.</param>
     /// <param name="topAccessors">Accessor functions for top-level fields.</param>
     /// <returns>Selector function.</returns>
     /// <example>
@@ -18,7 +18,7 @@ internal static class SelectorFactory {
     /// </code>
     /// </example>
     public static Func<TDto, object> Create<TDto>(
-        string[] tokens,
+        IEnumerable<string> orderedKeys,
         List<(string requestedKey, Func<TDto, object> getter)> topAccessors) {
         return dto => {
             // handle null or default dto
@@ -26,25 +26,13 @@ internal static class SelectorFactory {
                 return null!;
 
             var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            // preserve order of original tokens (first occurrence wins) and skip duplicates
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string token in tokens) {
-                string[] parts = token.Split('.',
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (parts.Length == 0) {
-                    continue;
-                }
-
-                string top = parts[0];
-                if (!seen.Add(top))
-                    continue;
-
-                // find the accessor for this top-level property
+            foreach (string key in orderedKeys) {
                 (string _, Func<TDto, object> getter) =
-                    topAccessors.FirstOrDefault(a => a.requestedKey.Equals(top, StringComparison.OrdinalIgnoreCase));
-                if (getter != null)
-                    result[top] = getter(dto);
+                    topAccessors.FirstOrDefault(a => a.requestedKey.Equals(key, StringComparison.OrdinalIgnoreCase));
+                if (getter != null) {
+                    result[key] = getter(dto);
+                }
             }
 
             return result;

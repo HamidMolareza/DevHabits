@@ -11,17 +11,17 @@ internal static class AccessorCompiler {
     /// Builds accessor functions for top-level and nested DTO properties.
     /// </summary>
     /// <typeparam name="TDto">DTO type.</typeparam>
-    /// <param name="grouped">Grouped top-level and nested fields.</param>
+    /// <param name="grouped">Grouped top-level and nested fields (null for whole property).</param>
     /// <param name="dtoProps">DTO property map.</param>
     /// <returns>List of accessor functions, or null if invalid.</returns>
     /// <example>
     /// <code>
-    /// var accessors = AccessorCompiler.BuildTopAccessors&lt;UserDto&gt;(grouped, FieldSelector.GetPropertiesMap(typeof(UserDto)));
+    /// var accessors = AccessorCompiler.BuildAccessors&lt;UserDto&gt;(grouped, FieldSelector.GetPropertiesMap(typeof(UserDto)));
     /// // accessors[0].getter(userDto) returns the requested field value
     /// </code>
     /// </example>
     public static List<(string requestedKey, Func<TDto, object> getter)> BuildAccessors<TDto>(
-        Dictionary<string, List<string>> grouped,
+        Dictionary<string, List<string>?> grouped,
         Dictionary<string, PropertyInfo> dtoProps) {
         // For each top-level prop we will create an accessor:
         // either Func<TDto, object> that returns full value,
@@ -29,10 +29,10 @@ internal static class AccessorCompiler {
         var topAccessors = new List<(string requestedKey, Func<TDto, object> getter)>();
         ParameterExpression param = Expression.Parameter(typeof(TDto), "dto");
 
-        foreach ((string topName, var nestedList) in grouped) {
+        foreach ((string topName, List<string>? nestedList) in grouped) {
             PropertyInfo topProp = dtoProps[topName];
 
-            if (nestedList == null!) {
+            if (nestedList == null) {
                 // whole top-level property requested -> compile a getter for topProp
                 var getExpr = Expression.Lambda<Func<TDto, object>>(
                     Expression.Convert(Expression.Property(param, topProp), typeof(object)),

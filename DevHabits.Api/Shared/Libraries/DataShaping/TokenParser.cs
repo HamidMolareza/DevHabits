@@ -18,7 +18,6 @@ internal static class TokenParser {
     public static string[] Parse(string fields) {
         return fields.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Distinct()
             .ToArray();
     }
 }
