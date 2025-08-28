@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace DevHabits.Api.Shared.Libraries.DataShaping;
@@ -7,9 +6,6 @@ namespace DevHabits.Api.Shared.Libraries.DataShaping;
 /// Provides utilities for selecting fields from DTOs dynamically based on a field string.
 /// </summary>
 public static class FieldSelector {
-    // Cache property dictionaries per type to avoid repeated reflection
-    private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropsCache = new();
-
     /// <summary>
     /// Attempts to create a selector function for the specified DTO type based on requested fields.
     /// </summary>
@@ -46,40 +42,21 @@ public static class FieldSelector {
         }
 
         Type dtoType = typeof(TDto);
-        Dictionary<string, PropertyInfo> dtoProps = GetPropertiesMap(dtoType);
+        Dictionary<string, PropertyInfo> dtoProps = dtoType.GetPropertiesMap();
 
-        // structure: topField -> list of nested fields (without top prefix)
+        // Validate fields and group nested properties
         Dictionary<string, List<string>>? grouped =
-            FieldValidator.ValidateTopLevelFields(tokens, dtoProps, dtoType, out error);
+            FieldValidator.ValidateFields(tokens, dtoProps, dtoType, out error);
         if (grouped == null)
             return false;
 
-        List<(string requestedKey, Func<TDto, object> getter)>? topAccessors =
-            AccessorCompiler.BuildTopAccessors<TDto>(grouped, dtoProps, out error);
-        if (topAccessors == null) {
-            return false;
-        }
+        // Compile accessors for top-level and nested properties
+        List<(string requestedKey, Func<TDto, object> getter)> topAccessors =
+            AccessorCompiler.BuildAccessors<TDto>(grouped, dtoProps);
 
+        // Create the selector function
         selector = SelectorFactory.Create(tokens, topAccessors);
-        return true;
-    }
 
-    /// <summary>
-    /// Gets a dictionary mapping property names to PropertyInfo for the given type.
-    /// </summary>
-    /// <param name="type">The type to inspect.</param>
-    /// <returns>Dictionary of property names to PropertyInfo.</returns>
-    /// <example>
-    /// <code>
-    /// var map = FieldSelector.GetPropertiesMap(typeof(UserDto));
-    /// // map["Name"] gives PropertyInfo for Name property
-    /// </code>
-    /// </example>
-    public static Dictionary<string, PropertyInfo> GetPropertiesMap(Type type) {
-        return PropsCache.GetOrAdd(type, t => {
-            var dict = t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
-            return dict;
-        });
+        return true;
     }
 }

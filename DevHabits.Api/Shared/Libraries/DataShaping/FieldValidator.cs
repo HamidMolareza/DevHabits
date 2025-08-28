@@ -21,7 +21,7 @@ internal static class FieldValidator {
     /// // grouped["Name"] == null, grouped["Profile"] == ["Email"]
     /// </code>
     /// </example>
-    public static Dictionary<string, List<string>>? ValidateTopLevelFields(
+    public static Dictionary<string, List<string>>? ValidateFields(
         string[] tokens,
         Dictionary<string, PropertyInfo> dtoProps,
         Type dtoType,
@@ -35,87 +35,54 @@ internal static class FieldValidator {
                 continue;
 
             string top = parts[0];
-            if (!dtoProps.ContainsKey(top)) {
+            if (!dtoProps.TryGetValue(top, out PropertyInfo? topProp)) {
                 error = $"Field '{token}' is not a top-level property of {dtoType.Name}.";
                 return null;
             }
 
             if (parts.Length == 1) {
-                grouped[top] = null!; // null list -> means "whole top-level property requested"
+                // whole property requested
+                grouped[top] = null!;
                 continue;
             }
 
-            if (grouped.TryGetValue(top, out List<string>? existing)) {
-                if (existing == null!) {
-                    // already requested the whole object; ignore subfields
-                    continue;
+            if (parts.Length == 2) {
+                Type nestedType = topProp.PropertyType;
+                if (nestedType.IsGenericType && nestedType.GetGenericTypeDefinition() == typeof(Nullable<>)) {
+                    nestedType = Nullable.GetUnderlyingType(nestedType)!;
                 }
-                // else: Another path like "top.subfield" was already requested
-            }
-            else {
-                // first time seeing this top-level property
-                existing = [];
-                grouped[top] = existing;
+
+                Dictionary<string, PropertyInfo> nestedProps = nestedType.GetPropertiesMap();
+                string nested = parts[1];
+                if (!nestedProps.ContainsKey(nested)) {
+                    error =
+                        $"field '{token}' is not a property of '{nestedType.Name}'.";
+                    return null;
+                }
+
+                if (grouped.TryGetValue(top, out List<string>? list)) {
+                    if (list == null!) {
+                        // already requested the whole object; ignore subfields
+                        continue;
+                    }
+                    // else: Another path like "top.subfield" was already requested
+                }
+                else {
+                    // first time seeing this top-level property
+                    list = [];
+                    grouped[top] = list;
+                }
+
+                list.Add(nested);
+                continue;
             }
 
-            // join rest as subtoken (single-level only accepted for our DTOs; but we can validate recursively)
-            string rest = string.Join('.', parts.Skip(1));
-            existing.Add(rest);
+            // ❌ depth > 2
+            error = $"field '{token}' depth > 2 is not supported.";
+            return null;
         }
 
         error = null;
         return grouped;
-    }
-
-    /// <summary>
-    /// Validates nested field tokens against nested DTO properties.
-    /// </summary>
-    /// <param name="nestedList">List of nested field tokens.</param>
-    /// <param name="nestedProps">Nested property map.</param>
-    /// <param name="nestedType">Nested type.</param>
-    /// <param name="topName">Top-level property name.</param>
-    /// <param name="error">Error message if validation fails.</param>
-    /// <returns>Set of valid nested field names, or null if invalid.</returns>
-    /// <example>
-    /// <code>
-    /// var nestedFields = FieldValidator.ValidateNestedFields(
-    ///     new List&lt;string&gt; { "Email" }, FieldSelector.GetPropertiesMap(typeof(ProfileDto)), typeof(ProfileDto), "Profile", out var error);
-    /// // nestedFields contains "Email"
-    /// </code>
-    /// </example>
-    public static HashSet<string>? ValidateNestedFields(
-        List<string> nestedList,
-        Dictionary<string, PropertyInfo> nestedProps,
-        Type nestedType,
-        string topName,
-        out string? error) {
-        error = null;
-        var nestedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (string nestedFull in nestedList) {
-            string[] nestedParts =
-                nestedFull.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (nestedParts.Length == 0) {
-                continue;
-            }
-
-            string first = nestedParts[0];
-            if (!nestedProps.ContainsKey(first)) {
-                error =
-                    $"Nested field '{nestedFull}' is not a property of '{nestedType.Name}' (under top-level '{topName}').";
-                return null;
-            }
-
-            // currently we only accept direct nested properties (not deeper) - treat deeper as error or extend
-            if (nestedParts.Length > 1) {
-                error =
-                    $"Nested field '{nestedFull}' depth > 1 is not supported.";
-                return null;
-            }
-
-            nestedFields.Add(first);
-        }
-
-        return nestedFields;
     }
 }

@@ -13,20 +13,16 @@ internal static class AccessorCompiler {
     /// <typeparam name="TDto">DTO type.</typeparam>
     /// <param name="grouped">Grouped top-level and nested fields.</param>
     /// <param name="dtoProps">DTO property map.</param>
-    /// <param name="error">Error message if compilation fails.</param>
     /// <returns>List of accessor functions, or null if invalid.</returns>
     /// <example>
     /// <code>
-    /// var accessors = AccessorCompiler.BuildTopAccessors&lt;UserDto&gt;(grouped, FieldSelector.GetPropertiesMap(typeof(UserDto)), out var error);
+    /// var accessors = AccessorCompiler.BuildTopAccessors&lt;UserDto&gt;(grouped, FieldSelector.GetPropertiesMap(typeof(UserDto)));
     /// // accessors[0].getter(userDto) returns the requested field value
     /// </code>
     /// </example>
-    public static List<(string requestedKey, Func<TDto, object> getter)>? BuildTopAccessors<TDto>(
+    public static List<(string requestedKey, Func<TDto, object> getter)> BuildAccessors<TDto>(
         Dictionary<string, List<string>> grouped,
-        Dictionary<string, PropertyInfo> dtoProps,
-        out string? error) {
-        error = null;
-
+        Dictionary<string, PropertyInfo> dtoProps) {
         // For each top-level prop we will create an accessor:
         // either Func<TDto, object> that returns full value,
         // or Func<TDto, IDictionary<string,object?>> returning a dictionary with requested nested subfields.
@@ -53,13 +49,9 @@ internal static class AccessorCompiler {
                 nestedType = Nullable.GetUnderlyingType(nestedType)!;
             }
 
-            Dictionary<string, PropertyInfo> nestedProps = FieldSelector.GetPropertiesMap(nestedType);
-            HashSet<string>? nestedFields =
-                FieldValidator.ValidateNestedFields(nestedList, nestedProps, nestedType, topName, out error);
-            if (nestedFields == null) {
-                return null;
-            }
+            Dictionary<string, PropertyInfo> nestedProps = nestedType.GetPropertiesMap();
 
+            var nestedFields = new HashSet<string>(nestedList, StringComparer.OrdinalIgnoreCase);
             // compile nested getters
             List<(string nestedName, Func<TDto, object?> getter)> nestedGetters =
                 CompileNestedGetters<TDto>(nestedFields, param, topProp, nestedProps);
