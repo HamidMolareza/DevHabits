@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DevHabits.Api.Habits.Options;
 using DevHabits.Api.Middlewares;
 using DevHabits.Api.Shared.Database;
+using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.FluentValidationHelpers;
 using DevHabits.Api.Shared.Libraries.Sort;
 using DevHabits.Api.Shared.ServiceCollections;
@@ -36,7 +37,8 @@ builder.Services.AddProblemDetails(options => {
 });
 builder.Services
     .AddExceptionHandler<ValidationExceptionHandler>()
-    .AddExceptionHandler<SortExceptionHandler>();
+    .AddExceptionHandler<SortExceptionHandler>()
+    .AddExceptionHandler<ShapeDataExceptionHandler>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("default"),

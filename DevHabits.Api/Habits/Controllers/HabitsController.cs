@@ -3,6 +3,7 @@ using DevHabits.Api.Habits.Entities;
 using DevHabits.Api.Habits.Mappings;
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.BaseApiControllers;
+using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.Sort;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,12 +19,15 @@ public class HabitsController(
     [HttpGet]
     public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(
         string? sort,
+        string? fields,
         CancellationToken cancellationToken) {
         List<HabitResponse> habitDtos = await context.Habits
             .ApplySort(sort, habitSort.GetOptions())
             .Select(HabitQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
-        return new HabitsCollectionResponse { Data = habitDtos };
+
+        IEnumerable<object> shaped = habitDtos.ShapeData(fields).ToList();
+        return new HabitsCollectionResponse { Data = shaped };
     }
 
     // GET: Habits/5

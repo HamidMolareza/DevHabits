@@ -2,7 +2,7 @@ using System.Linq.Dynamic.Core;
 
 namespace DevHabits.Api.Shared.Libraries.Sort;
 
-public static class QueryableExtensions {
+public static class SortQueryableExtensions {
     /// <summary>
     /// Apply sorting. Throws if validation fails or sorting cannot be applied.
     /// </summary>
