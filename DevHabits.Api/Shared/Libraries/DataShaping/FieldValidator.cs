@@ -41,7 +41,6 @@ internal static class FieldValidator {
             }
 
             if (parts.Length == 1) {
-                // whole property requested
                 grouped[top] = null!;
                 continue;
             }
@@ -55,20 +54,16 @@ internal static class FieldValidator {
                 Dictionary<string, PropertyInfo> nestedProps = nestedType.GetPropertiesMap();
                 string nested = parts[1];
                 if (!nestedProps.ContainsKey(nested)) {
-                    error =
-                        $"field '{token}' is not a property of '{nestedType.Name}'.";
+                    error = $"field '{token}' is not a property of '{nestedType.Name}'.";
                     return null;
                 }
 
                 if (grouped.TryGetValue(top, out List<string>? list)) {
                     if (list == null!) {
-                        // already requested the whole object; ignore subfields
                         continue;
                     }
-                    // else: Another path like "top.subfield" was already requested
                 }
                 else {
-                    // first time seeing this top-level property
                     list = [];
                     grouped[top] = list;
                 }
@@ -78,6 +73,65 @@ internal static class FieldValidator {
             }
 
             // ❌ depth > 2
+            error = $"field '{token}' depth > 2 is not supported.";
+            return null;
+        }
+
+        error = null;
+        return grouped;
+    }
+
+    // Overload for config-based validation
+    public static Dictionary<string, List<string>?>? ValidateFields<TEntity, TDto>(
+        string[] tokens,
+        DtoMappingConfiguration<TEntity, TDto> config,
+        out string? error) where TDto : class {
+        var grouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
+        tokens = tokens.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+        foreach (string token in tokens) {
+            string[] parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0)
+                continue;
+
+            string top = parts[0];
+
+            if (parts.Length == 1) {
+                if (!config.Mappings.ContainsKey(top) && !config.NestedGroups.ContainsKey(top)) {
+                    error = $"Field '{token}' is not mapped.";
+                    return null;
+                }
+
+                grouped[top] = null!;
+                continue;
+            }
+
+            if (parts.Length == 2) {
+                string nested = parts[1];
+                string path = $"{top}.{nested}";
+                if (!config.Mappings.ContainsKey(path)) {
+                    error = $"Field '{token}' is not mapped.";
+                    return null;
+                }
+
+                if (grouped.TryGetValue(top, out List<string>? list)) {
+                    // Already full complex, skip
+                    if (list == null!) {
+                        continue;
+                    }
+                }
+                else {
+                    list = [];
+                    grouped[top] = list;
+                }
+
+                if (!list.Contains(nested, StringComparer.OrdinalIgnoreCase)) {
+                    list.Add(nested);
+                }
+
+                continue;
+            }
+
             error = $"field '{token}' depth > 2 is not supported.";
             return null;
         }

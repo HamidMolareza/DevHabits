@@ -1,16 +1,16 @@
 namespace DevHabits.Api.Shared.Libraries.DataShaping;
 
 public static class ShapeDataExtensions {
-    public static IEnumerable<object> IncludeFields<TDto>(
+    public static IEnumerable<object> SelectFields<TDto>(
         this IEnumerable<TDto> source,
         string? fields) where TDto : class {
-        if (!source.TryIncludeFields(fields, out IEnumerable<object>? items, out string? error))
+        if (!source.TrySelectFields(fields, out IEnumerable<object>? items, out string? error))
             throw new ShapeDataException(error ?? "One or more requested fields are invalid.");
 
         return items;
     }
 
-    public static bool TryIncludeFields<TDto>(
+    public static bool TrySelectFields<TDto>(
         this IEnumerable<TDto> source,
         string? fields,
         out IEnumerable<object>? items,
@@ -21,7 +21,7 @@ public static class ShapeDataExtensions {
             return true;
         }
 
-        if (!FieldSelector.TryCreateIncluder(fields, out Func<TDto, object> selector, out error)) {
+        if (!FieldSelector.TryCreateSelector(fields, out Func<TDto, object> selector, out error)) {
             items = null;
             return false;
         }
@@ -106,7 +106,7 @@ public static class ShapeDataExtensions {
             return source.TryExcludeFields(excludeFields, out items, out error);
 
         if (string.IsNullOrWhiteSpace(excludeFields))
-            return source.TryIncludeFields(includeFields, out items, out error);
+            return source.TrySelectFields(includeFields, out items, out error);
 
         if (!FieldSelector.TryCreateShaper(includeFields, excludeFields, out Func<TDto, object> shaper, out error)) {
             items = null;

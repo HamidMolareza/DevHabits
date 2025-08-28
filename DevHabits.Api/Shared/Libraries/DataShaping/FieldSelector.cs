@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace DevHabits.Api.Shared.Libraries.DataShaping;
@@ -23,7 +24,7 @@ public static class FieldSelector {
     /// var shaped = selector(new UserDto { Name = "Alice", Age = 30 }); // returns { "Name": "Alice" }
     /// </code>
     /// </example>
-    public static bool TryCreateIncluder<TDto>(string? fields,
+    public static bool TryCreateSelector<TDto>(string? fields,
         out Func<TDto, object> selector,
         out string? error) where TDto : class {
         selector = _ => throw new InvalidOperationException("uninitialized");
@@ -211,7 +212,7 @@ public static class FieldSelector {
             return TryCreateExcluder(excludeFields, out shaper, out error);
 
         if (excludeTokens.Length == 0)
-            return TryCreateIncluder(includeFields, out shaper, out error);
+            return TryCreateSelector(includeFields, out shaper, out error);
 
         var common = includeTokens.Intersect(excludeTokens, StringComparer.OrdinalIgnoreCase).ToList();
         if (common.Count > 0) {
@@ -307,6 +308,202 @@ public static class FieldSelector {
 
         // Create the shaper function
         shaper = SelectorFactory.Create(orderedTops, topAccessors);
+        return true;
+    }
+
+    public static bool TryCreateSelectorProjection<TEntity, TDto>(string? fields,
+        DtoMappingConfiguration<TEntity, TDto> config,
+        out Expression<Func<TEntity, object>> projection,
+        out string? error) where TDto : class {
+        projection = null!;
+
+        if (string.IsNullOrWhiteSpace(fields))
+            return TryCreateFullProjection(config, out projection, out error);
+
+        string[] tokens = TokenParser.Parse(fields);
+        if (tokens.Length == 0)
+            return TryCreateFullProjection(config, out projection, out error);
+
+        Dictionary<string, List<string>?> grouped =
+            FieldValidator.ValidateFields(tokens, config, out error);
+        if (grouped == null)
+            return false;
+
+        var orderedTops = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string token in tokens) {
+            string[] parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0)
+                continue;
+            string top = parts[0];
+            if (seen.Add(top)) {
+                orderedTops.Add(top);
+            }
+        }
+
+        projection = ProjectionCompiler.BuildProjection(orderedTops, grouped, config);
+        return true;
+    }
+
+    public static bool TryCreateExcludeProjection<TEntity, TDto>(string? excludeFields,
+        DtoMappingConfiguration<TEntity, TDto> config,
+        out Expression<Func<TEntity, object>> projection,
+        out string? error) where TDto : class {
+        projection = null!;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(excludeFields))
+            return TryCreateFullProjection(config, out projection, out error);
+
+        string[] tokens = TokenParser.Parse(excludeFields);
+        if (tokens.Length == 0)
+            return TryCreateFullProjection(config, out projection, out error);
+
+        Dictionary<string, List<string>?>? excludedGrouped =
+            FieldValidator.ValidateFields(tokens, config, out error);
+        if (excludedGrouped == null)
+            return false;
+
+        Type dtoType = typeof(TDto);
+        var allTops = config.GetAllTopLevelFields(dtoType).ToList();
+
+        var fullyExcluded = new HashSet<string>(
+            excludedGrouped.Where(kv => kv.Value == null).Select(kv => kv.Key),
+            StringComparer.OrdinalIgnoreCase);
+
+        var orderedTops = new List<string>();
+        foreach (string top in allTops) {
+            if (!fullyExcluded.Contains(top)) {
+                orderedTops.Add(top);
+            }
+        }
+
+        var includedGrouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
+        foreach (string top in orderedTops) {
+            if (!excludedGrouped.TryGetValue(top, out List<string>? exclNested) || exclNested == null) {
+                includedGrouped[top] = null;
+                continue;
+            }
+
+            if (config.NestedGroups.TryGetValue(top, out List<string>? allNested)) {
+                var exclSet = new HashSet<string>(exclNested, StringComparer.OrdinalIgnoreCase);
+                var inclNested = allNested.Except(exclSet, StringComparer.OrdinalIgnoreCase).ToList();
+                includedGrouped[top] = inclNested;
+            }
+        }
+
+        projection = ProjectionCompiler.BuildProjection(orderedTops, includedGrouped, config);
+        return true;
+    }
+
+    public static bool TryCreateShapeProjection<TEntity, TDto>(string includeFields,
+        string excludeFields,
+        DtoMappingConfiguration<TEntity, TDto> config,
+        out Expression<Func<TEntity, object>> projection,
+        out string? error) where TDto : class {
+        projection = null!;
+
+        if (string.IsNullOrWhiteSpace(includeFields) && string.IsNullOrWhiteSpace(excludeFields))
+            return TryCreateFullProjection(config, out projection, out error);
+
+        string[] includeTokens = TokenParser.Parse(includeFields);
+        string[] excludeTokens = TokenParser.Parse(excludeFields);
+
+        if (includeTokens.Length == 0 && excludeTokens.Length == 0)
+            return TryCreateFullProjection(config, out projection, out error);
+
+        if (includeTokens.Length == 0)
+            return TryCreateExcludeProjection(excludeFields, config, out projection, out error);
+
+        if (excludeTokens.Length == 0)
+            return TryCreateSelectorProjection(excludeFields, config, out projection, out error);
+
+        var common = includeTokens.Intersect(excludeTokens, StringComparer.OrdinalIgnoreCase).ToList();
+        if (common.Count > 0) {
+            error = $"Fields cannot be both included and excluded: {string.Join(", ", common)}";
+            projection = null!;
+            return false;
+        }
+
+        Dictionary<string, List<string>?>? includedGrouped =
+            FieldValidator.ValidateFields(includeTokens, config, out error);
+        if (includedGrouped == null)
+            return false;
+
+        Dictionary<string, List<string>?>? excludedGrouped =
+            FieldValidator.ValidateFields(excludeTokens, config, out error);
+        if (excludedGrouped == null)
+            return false;
+
+        var effectiveGrouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
+        var orderedTops = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string token in includeTokens) {
+            string[] parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0)
+                continue;
+            string top = parts[0];
+            if (!seen.Add(top))
+                continue;
+            orderedTops.Add(top);
+
+            if (!includedGrouped.ContainsKey(top))
+                continue;
+
+            if (excludedGrouped.TryGetValue(top, out List<string>? exclNested) && exclNested == null) {
+                continue;
+            }
+
+            if (includedGrouped[top] == null) {
+                List<string>? inclNestedList = null;
+                if (config.NestedGroups.TryGetValue(top, out List<string>? allNested)) {
+                    HashSet<string> exclSet = exclNested != null
+                        ? new HashSet<string>(exclNested, StringComparer.OrdinalIgnoreCase)
+                        : [];
+                    inclNestedList = allNested.Except(exclSet, StringComparer.OrdinalIgnoreCase).ToList();
+                }
+
+                effectiveGrouped[top] = inclNestedList?.Count > 0 ? inclNestedList : null;
+            }
+            else {
+                var inclNested = new HashSet<string>(includedGrouped[top]!, StringComparer.OrdinalIgnoreCase);
+                if (exclNested != null) {
+                    var exclSet = new HashSet<string>(exclNested, StringComparer.OrdinalIgnoreCase);
+                    inclNested.ExceptWith(exclSet);
+                }
+
+                effectiveGrouped[top] = inclNested.Count > 0 ? [.. inclNested] : null;
+            }
+        }
+
+        if (effectiveGrouped.Count == 0) {
+            error = "No fields remain after applying exclusions.";
+            return false;
+        }
+
+        projection = ProjectionCompiler.BuildProjection(orderedTops, effectiveGrouped, config);
+        return true;
+    }
+
+    public static bool TryCreateFullProjection<TEntity, TDto>(
+        DtoMappingConfiguration<TEntity, TDto> config,
+        out Expression<Func<TEntity, object>> projection,
+        out string? error) where TDto : class {
+        projection = null!;
+        error = null;
+
+        Dictionary<string, List<string>?> grouped = config.GetFullGrouped();
+        if (grouped.Count == 0) {
+            error = "No mappings defined in configuration.";
+            return false;
+        }
+
+        Type dtoType = typeof(TDto);
+        var allTops = config.GetAllTopLevelFields(dtoType).ToList();
+        var orderedTops = allTops.Where(grouped.ContainsKey).ToList();
+
+        projection = ProjectionCompiler.BuildProjection(orderedTops, grouped, config);
         return true;
     }
 }
