@@ -60,4 +60,61 @@ public static class ShapeDataExtensions {
         error = null;
         return true;
     }
+
+    /// <summary>
+    /// Shapes DTOs by including specified fields and excluding others, both required.
+    /// </summary>
+    /// <typeparam name="TDto">The DTO type.</typeparam>
+    /// <param name="source">The source DTO collection.</param>
+    /// <param name="includeFields">Comma-separated fields to include.</param>
+    /// <param name="excludeFields">Comma-separated fields to exclude.</param>
+    /// <returns>Collection of shaped objects.</returns>
+    /// <exception cref="ShapeDataException">Thrown if fields are invalid or none remain after exclusion.</exception>
+    public static IEnumerable<object> ShapeFields<TDto>(
+        this IEnumerable<TDto> source,
+        string includeFields,
+        string excludeFields) where TDto : class {
+        if (!source.TryShapeFields(includeFields, excludeFields, out IEnumerable<object>? items, out string? error))
+            throw new ShapeDataException(error ?? "One or more fields are invalid.");
+
+        return items;
+    }
+
+    /// <summary>
+    /// Attempts to shape DTOs by including specified fields and excluding others.
+    /// </summary>
+    /// <typeparam name="TDto">The DTO type.</typeparam>
+    /// <param name="source">The source DTO collection.</param>
+    /// <param name="includeFields">Comma-separated fields to include.</param>
+    /// <param name="excludeFields">Comma-separated fields to exclude.</param>
+    /// <param name="items">Output collection of shaped objects.</param>
+    /// <param name="error">Error message if shaping fails.</param>
+    /// <returns>True if shaping succeeds; otherwise, false.</returns>
+    public static bool TryShapeFields<TDto>(
+        this IEnumerable<TDto> source,
+        string includeFields,
+        string excludeFields,
+        out IEnumerable<object>? items,
+        out string? error) where TDto : class {
+        if (string.IsNullOrWhiteSpace(includeFields)) {
+            items = null;
+            error = "Include fields must be specified.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(excludeFields)) {
+            items = null;
+            error = "Exclude fields must be specified.";
+            return false;
+        }
+
+        if (!FieldSelector.TryCreateShaper(includeFields, excludeFields, out Func<TDto, object> shaper, out error)) {
+            items = null;
+            return false;
+        }
+
+        items = source.Select(dto => shaper(dto));
+        error = null;
+        return true;
+    }
 }

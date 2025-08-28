@@ -171,4 +171,132 @@ public static class FieldSelector {
 
         return true;
     }
+
+    /// <summary>
+    /// Attempts to create a shaper function that includes specified fields while excluding others.
+    /// </summary>
+    /// <typeparam name="TDto">The DTO type.</typeparam>
+    /// <param name="includeFields">Comma-separated fields to include.</param>
+    /// <param name="excludeFields">Comma-separated fields to exclude.</param>
+    /// <param name="shaper">Output shaper function.</param>
+    /// <param name="error">Error message if creation fails.</param>
+    /// <returns>True if shaper was created successfully; otherwise, false.</returns>
+    /// <example>
+    /// <code>
+    /// // Given a DTO:
+    /// public class UserDto { public string Name { get; set; } public ProfileDto Profile { get; set; } }
+    /// public class ProfileDto { public string Email { get; set; } public string Phone { get; set; } }
+    /// // Usage:
+    /// bool ok = FieldSelector.TryCreateShaper&lt;UserDto&gt;("Name,Profile.Email", "Profile.Phone", out var shaper, out var error);
+    /// var shaped = shaper(new UserDto { Name = "Alice", Profile = new ProfileDto { Email = "a@b.com", Phone = "123" } });
+    /// // returns { "Name": "Alice", "Profile": { "Email": "a@b.com" } }
+    /// </code>
+    /// </example>
+    public static bool TryCreateShaper<TDto>(string includeFields,
+        string excludeFields,
+        out Func<TDto, object> shaper,
+        out string? error) where TDto : class {
+        shaper = _ => throw new InvalidOperationException("uninitialized");
+        error = null;
+
+        string[] includeTokens = TokenParser.Parse(includeFields);
+        string[] excludeTokens = TokenParser.Parse(excludeFields);
+
+        if (includeTokens.Length == 0) {
+            shaper = null!;
+            error = "At least one include field must be specified.";
+            return false;
+        }
+
+        if (excludeTokens.Length == 0) {
+            shaper = null!;
+            error = "At least one exclude field must be specified.";
+            return false;
+        }
+
+        Type dtoType = typeof(TDto);
+        Dictionary<string, PropertyInfo> dtoProps = dtoType.GetPropertiesMap();
+
+        // Validate include and exclude fields
+        Dictionary<string, List<string>>? includedGrouped =
+            FieldValidator.ValidateFields(includeTokens, dtoProps, dtoType, out error);
+        if (includedGrouped == null) {
+            shaper = null!;
+            return false;
+        }
+
+        Dictionary<string, List<string>>? excludedGrouped =
+            FieldValidator.ValidateFields(excludeTokens, dtoProps, dtoType, out error);
+        if (excludedGrouped == null) {
+            shaper = null!;
+            return false;
+        }
+
+        // Compute effective included fields: include fields minus exclude fields
+        var effectiveGrouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
+        var orderedTops = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string token in includeTokens) {
+            string[] parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0)
+                continue;
+            string top = parts[0];
+            if (!seen.Add(top))
+                continue;
+            orderedTops.Add(top);
+
+            if (!includedGrouped.ContainsKey(top))
+                continue;
+
+            if (excludedGrouped.TryGetValue(top, out List<string>? exclNested) && exclNested == null) {
+                // Top-level property fully excluded, skip it
+                continue;
+            }
+
+            if (includedGrouped[top] == null) {
+                // Whole top-level property included
+                if (exclNested != null) {
+                    // Exclude specific nested fields
+                    Type nestedType = dtoProps[top].PropertyType;
+                    if (nestedType.IsGenericType && nestedType.GetGenericTypeDefinition() == typeof(Nullable<>)) {
+                        nestedType = Nullable.GetUnderlyingType(nestedType)!;
+                    }
+
+                    Dictionary<string, PropertyInfo> nestedProps = nestedType.GetPropertiesMap();
+                    var exclSet = new HashSet<string>(exclNested, StringComparer.OrdinalIgnoreCase);
+                    var inclNested =
+                        nestedProps.Keys.Except(exclSet, StringComparer.OrdinalIgnoreCase).ToList();
+                    effectiveGrouped[top] = inclNested.Count > 0 ? inclNested : null;
+                }
+                else {
+                    effectiveGrouped[top] = null;
+                }
+            }
+            else {
+                // Specific nested fields included
+                var inclNested = new HashSet<string>(includedGrouped[top], StringComparer.OrdinalIgnoreCase);
+                if (exclNested != null) {
+                    var exclSet = new HashSet<string>(exclNested, StringComparer.OrdinalIgnoreCase);
+                    inclNested.ExceptWith(exclSet);
+                }
+
+                effectiveGrouped[top] = inclNested.Count > 0 ? [.. inclNested] : null;
+            }
+        }
+
+        if (effectiveGrouped.Count == 0) {
+            shaper = null!;
+            error = "No fields remain after applying exclusions.";
+            return false;
+        }
+
+        // Compile accessors for effective fields
+        List<(string requestedKey, Func<TDto, object> getter)> topAccessors =
+            AccessorCompiler.BuildAccessors<TDto>(effectiveGrouped, dtoProps);
+
+        // Create the shaper function
+        shaper = SelectorFactory.Create(orderedTops, topAccessors);
+        return true;
+    }
 }
