@@ -13,21 +13,22 @@ namespace DevHabits.Api.Habits.Controllers;
 [Route("habits")]
 public class HabitsController(
     ApplicationDbContext context,
-    ISortOptionsProvider<Habit> habitSort
+    ISortOptionsProvider<Habit> habitSort,
+    DataShapeMapping dataShapeMapping
 ) : BaseApiController {
     // GET: Habits
     [HttpGet]
     public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(
         string? sort,
         string? fields,
+        string? excludeFields,
         CancellationToken cancellationToken) {
-        List<HabitResponse> habitDtos = await context.Habits
+        List<object> habitDtos = await context.Habits
             .ApplySort(sort, habitSort.GetOptions())
-            .Select(HabitQueries.ProjectToDto())
+            .ShapeFields(fields, excludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
             .ToListAsync(cancellationToken);
 
-        IEnumerable<object> shaped = habitDtos.ShapeData(fields).ToList();
-        return new HabitsCollectionResponse { Data = shaped };
+        return new HabitsCollectionResponse { Data = habitDtos };
     }
 
     // GET: Habits/5

@@ -48,7 +48,7 @@ public static class FieldSelector {
         // Validate fields and group nested properties
         Dictionary<string, List<string>>? grouped =
             FieldValidator.ValidateFields(tokens, dtoProps, dtoType, out error);
-        if (grouped == null!)
+        if (grouped == null)
             return false;
 
         // Extract ordered unique top-level keys from tokens
@@ -121,7 +121,7 @@ public static class FieldSelector {
         // Validate excluded fields and group nested properties
         Dictionary<string, List<string>>? excludedGrouped =
             FieldValidator.ValidateFields(tokens, dtoProps, dtoType, out error);
-        if (excludedGrouped == null!)
+        if (excludedGrouped == null)
             return false;
 
         // Get all top-level properties in declaration order
@@ -227,7 +227,7 @@ public static class FieldSelector {
         // Validate include fields
         Dictionary<string, List<string>>? includedGrouped =
             FieldValidator.ValidateFields(includeTokens, dtoProps, dtoType, out error);
-        if (includedGrouped == null!) {
+        if (includedGrouped == null) {
             shaper = null!;
             return false;
         }
@@ -235,7 +235,7 @@ public static class FieldSelector {
         // Validate exclude fields
         Dictionary<string, List<string>>? excludedGrouped =
             FieldValidator.ValidateFields(excludeTokens, dtoProps, dtoType, out error);
-        if (excludedGrouped == null!) {
+        if (excludedGrouped == null) {
             shaper = null!;
             return false;
         }
@@ -317,12 +317,14 @@ public static class FieldSelector {
         out string? error) where TDto : class {
         projection = null!;
 
-        if (string.IsNullOrWhiteSpace(fields))
+        if (string.IsNullOrWhiteSpace(fields)) {
             return TryCreateFullProjection(config, out projection, out error);
+        }
 
         string[] tokens = TokenParser.Parse(fields);
-        if (tokens.Length == 0)
+        if (tokens.Length == 0) {
             return TryCreateFullProjection(config, out projection, out error);
+        }
 
         Dictionary<string, List<string>?> grouped =
             FieldValidator.ValidateFields(tokens, config, out error);
@@ -352,12 +354,14 @@ public static class FieldSelector {
         projection = null!;
         error = null;
 
-        if (string.IsNullOrWhiteSpace(excludeFields))
+        if (string.IsNullOrWhiteSpace(excludeFields)) {
             return TryCreateFullProjection(config, out projection, out error);
+        }
 
         string[] tokens = TokenParser.Parse(excludeFields);
-        if (tokens.Length == 0)
+        if (tokens.Length == 0) {
             return TryCreateFullProjection(config, out projection, out error);
+        }
 
         Dictionary<string, List<string>?>? excludedGrouped =
             FieldValidator.ValidateFields(tokens, config, out error);
@@ -368,7 +372,7 @@ public static class FieldSelector {
         var allTops = config.GetAllTopLevelFields(dtoType).ToList();
 
         var fullyExcluded = new HashSet<string>(
-            excludedGrouped.Where(kv => kv.Value == null).Select(kv => kv.Key),
+            excludedGrouped.Where(kv => kv.Value == null!).Select(kv => kv.Key),
             StringComparer.OrdinalIgnoreCase);
 
         var orderedTops = new List<string>();
@@ -380,7 +384,7 @@ public static class FieldSelector {
 
         var includedGrouped = new Dictionary<string, List<string>?>(StringComparer.OrdinalIgnoreCase);
         foreach (string top in orderedTops) {
-            if (!excludedGrouped.TryGetValue(top, out List<string>? exclNested) || exclNested == null) {
+            if (!excludedGrouped.TryGetValue(top, out List<string>? exclNested) || exclNested == null!) {
                 includedGrouped[top] = null;
                 continue;
             }
@@ -452,7 +456,11 @@ public static class FieldSelector {
                 continue;
 
             if (excludedGrouped.TryGetValue(top, out List<string>? exclNested) && exclNested == null) {
-                continue;
+                // Top-level property fully excluded, skip it
+                // continue;
+                error = $"field {token} included but its top-level property '{top}' is fully excluded.";
+                projection = null!;
+                return false;
             }
 
             if (includedGrouped[top] == null) {

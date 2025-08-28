@@ -6,7 +6,9 @@ public static class QueryShapeExtensions {
     public static IQueryable<object> SelectFields<TEntity, TDto>(
         this IQueryable<TEntity> source,
         string? fields,
-        DtoMappingConfiguration<TEntity, TDto> config) where TDto : class {
+        DtoMappingConfiguration<TEntity, TDto> config)
+        where TDto : class
+        where TEntity : class {
         if (!TrySelectFields(source, fields, config, out IQueryable<object> query, out string? error))
             throw new ShapeDataException(error ?? "One or more requested fields are invalid.");
 
@@ -18,9 +20,17 @@ public static class QueryShapeExtensions {
         string? fields,
         DtoMappingConfiguration<TEntity, TDto> config,
         out IQueryable<object> query,
-        out string? error) where TDto : class {
+        out string? error)
+        where TDto : class
+        where TEntity : class {
         if (string.IsNullOrWhiteSpace(fields)) {
-            query = (IQueryable<object>)source;
+            if (!FieldSelector.TryCreateFullProjection(config, out Expression<Func<TEntity, object>> fullProjection,
+                    out error)) {
+                query = null!;
+                return false;
+            }
+
+            query = source.Select(fullProjection);
             error = null;
             return true;
         }
@@ -39,7 +49,9 @@ public static class QueryShapeExtensions {
     public static IQueryable<object> ExcludeFields<TEntity, TDto>(
         this IQueryable<TEntity> source,
         string? excludeFields,
-        DtoMappingConfiguration<TEntity, TDto> config) where TDto : class {
+        DtoMappingConfiguration<TEntity, TDto> config)
+        where TDto : class
+        where TEntity : class {
         if (!TryExcludeFields(source, excludeFields, config, out IQueryable<object> query, out string? error))
             throw new ShapeDataException(error ?? "One or more excluded fields are invalid.");
 
@@ -51,9 +63,17 @@ public static class QueryShapeExtensions {
         string? excludeFields,
         DtoMappingConfiguration<TEntity, TDto> config,
         out IQueryable<object> query,
-        out string? error) where TDto : class {
+        out string? error)
+        where TDto : class
+        where TEntity : class {
         if (string.IsNullOrWhiteSpace(excludeFields)) {
-            query = (IQueryable<object>)source;
+            if (!FieldSelector.TryCreateFullProjection(config, out Expression<Func<TEntity, object>> fullProjection,
+                    out error)) {
+                query = null!;
+                return false;
+            }
+
+            query = source.Select(fullProjection);
             error = null;
             return true;
         }
@@ -71,9 +91,11 @@ public static class QueryShapeExtensions {
 
     public static IQueryable<object> ShapeFields<TEntity, TDto>(
         this IQueryable<TEntity> source,
-        string includeFields,
-        string excludeFields,
-        DtoMappingConfiguration<TEntity, TDto> config) where TDto : class {
+        string? includeFields,
+        string? excludeFields,
+        DtoMappingConfiguration<TEntity, TDto> config)
+        where TDto : class
+        where TEntity : class {
         if (!TryShapeFields(source, includeFields, excludeFields, config, out IQueryable<object> query,
                 out string? error))
             throw new ShapeDataException(error ?? "One or more fields are invalid.");
@@ -83,13 +105,15 @@ public static class QueryShapeExtensions {
 
     public static bool TryShapeFields<TEntity, TDto>(
         this IQueryable<TEntity> source,
-        string includeFields,
-        string excludeFields,
+        string? includeFields,
+        string? excludeFields,
         DtoMappingConfiguration<TEntity, TDto> config,
         out IQueryable<object> query,
-        out string? error) where TDto : class {
+        out string? error)
+        where TDto : class
+        where TEntity : class {
         if (string.IsNullOrWhiteSpace(includeFields) && string.IsNullOrWhiteSpace(excludeFields)) {
-            query = (IQueryable<object>)source;
+            query = source;
             error = null;
             return true;
         }

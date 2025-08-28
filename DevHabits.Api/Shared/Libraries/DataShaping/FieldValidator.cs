@@ -54,7 +54,7 @@ internal static class FieldValidator {
                 Dictionary<string, PropertyInfo> nestedProps = nestedType.GetPropertiesMap();
                 string nested = parts[1];
                 if (!nestedProps.ContainsKey(nested)) {
-                    error = $"field '{token}' is not a property of '{nestedType.Name}'.";
+                    error = $"Field '{token}' is not a property of '{nestedType.Name}'.";
                     return null;
                 }
 
@@ -72,8 +72,7 @@ internal static class FieldValidator {
                 continue;
             }
 
-            // ❌ depth > 2
-            error = $"field '{token}' depth > 2 is not supported.";
+            error = $"Field '{token}' depth > 2 is not supported.";
             return null;
         }
 
@@ -132,7 +131,7 @@ internal static class FieldValidator {
                 continue;
             }
 
-            error = $"field '{token}' depth > 2 is not supported.";
+            error = $"Field '{token}' depth > 2 is not supported.";
             return null;
         }
 

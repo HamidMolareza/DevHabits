@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DevHabits.Api.Habits.Dtos;
 using DevHabits.Api.Habits.Options;
 using DevHabits.Api.Middlewares;
 using DevHabits.Api.Shared.Database;
@@ -21,6 +22,8 @@ builder.Services.AddControllers(options => {
 builder.Services.AddOpenApi();
 
 builder.Services.AddSortOptionsFromAssemblyContaining<HabitSortOptionsProvider>();
+
+builder.Services.AddSingleton(new DataShapeMapping(typeof(HabitResponseDataShapingConfigurator).Assembly));
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

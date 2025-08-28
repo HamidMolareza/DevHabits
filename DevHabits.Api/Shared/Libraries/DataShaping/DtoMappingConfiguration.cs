@@ -1,4 +1,4 @@
- using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace DevHabits.Api.Shared.Libraries.DataShaping;
@@ -20,12 +20,11 @@ public class DtoMappingConfiguration<TEntity, TDto> where TDto : class {
     /// <typeparam name="TProp">The property type.</typeparam>
     /// <param name="dtoSelector">Selector for the DTO property (e.g., dto => dto.Profile.Email).</param>
     /// <param name="entitySelector">Selector for the entity value (e.g., entity => entity.Profile.Email).</param>
-    public void MapProperty<TProp>(Expression<Func<TDto, TProp>> dtoSelector,
+    public void Map<TProp>(Expression<Func<TDto, TProp>> dtoSelector,
         Expression<Func<TEntity, TProp>> entitySelector) {
         string path = GetPropertyPath(dtoSelector);
-        Mappings[path] =
-            Expression.Lambda<Func<TEntity, object?>>(Expression.Convert(entitySelector.Body, typeof(object)),
-                entitySelector.Parameters);
+        Mappings[path] = Expression.Lambda<Func<TEntity, object?>>(
+            Expression.Convert(entitySelector.Body, typeof(object)), entitySelector.Parameters);
 
         string[] parts = path.Split('.');
         if (parts.Length < 2)
@@ -65,11 +64,6 @@ public class DtoMappingConfiguration<TEntity, TDto> where TDto : class {
             if (parts.Length == 1) {
                 grouped[top] = null;
             }
-            else if (grouped.TryGetValue(top, out List<string>? value) && value == null) {
-                // Already full
-            }
-
-            // Handled by _nestedGroups
         }
 
         foreach (KeyValuePair<string, List<string>> kv in NestedGroups) {
@@ -82,7 +76,6 @@ public class DtoMappingConfiguration<TEntity, TDto> where TDto : class {
     }
 
     internal IEnumerable<string> GetAllTopLevelFields(Type dtoType) {
-        // Use reflection for order
         PropertyInfo[] allProps = dtoType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
         return allProps.Select(p => p.Name);
     }
