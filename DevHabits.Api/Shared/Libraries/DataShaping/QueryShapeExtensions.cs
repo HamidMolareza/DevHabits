@@ -113,7 +113,13 @@ public static class QueryShapeExtensions {
         where TDto : class
         where TEntity : class {
         if (string.IsNullOrWhiteSpace(includeFields) && string.IsNullOrWhiteSpace(excludeFields)) {
-            query = source;
+            if (!FieldSelector.TryCreateFullProjection(config, out Expression<Func<TEntity, object>> fullProjection,
+                    out error)) {
+                query = null!;
+                return false;
+            }
+
+            query = source.Select(fullProjection);
             error = null;
             return true;
         }
