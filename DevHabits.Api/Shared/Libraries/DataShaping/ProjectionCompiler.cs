@@ -20,18 +20,60 @@ internal static class ProjectionCompiler {
         var initializers = new List<ElementInit>();
 
         foreach (string topName in orderedTops) {
+            // 🔹 Handle collections
+            if (config.CollectionMappings.TryGetValue(topName, out CollectionMapping? collectionMapping)) {
+                Expression collectionExpr = RebindExpression(collectionMapping.EntitySelector, entity);
+
+                // Build selector for each element
+                dynamic nestedConfigObj = collectionMapping.NestedConfig;
+                Type entityItemType = collectionMapping.EntitySelector.ReturnType.GetGenericArguments()[0];
+                ParameterExpression itemParam = Expression.Parameter(entityItemType, "item");
+
+                dynamic? nestedDictInit = BuildNestedProjection(itemParam, nestedConfigObj, grouped[topName]);
+
+                // item => (object)new Dictionary<string, object?> {...}
+                dynamic? selectorLambda = Expression.Lambda(
+                    Expression.Convert(nestedDictInit, typeof(object)),
+                    itemParam);
+
+                // collection.Select(selector).ToList()
+                MethodInfo selectMethod = typeof(Enumerable)
+                    .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                    .Where(m => m.Name == "Select" && m.GetParameters().Length == 2)
+                    .Select(m => new { Method = m, Params = m.GetParameters() })
+                    .Where(x =>
+                        x.Params[1].ParameterType.IsGenericType &&
+                        x.Params[1].ParameterType.GetGenericTypeDefinition() == typeof(Func<,>))
+                    .Select(x => x.Method)
+                    .Single()
+                    .MakeGenericMethod(itemParam.Type, typeof(object));
+
+                MethodInfo toListMethod = typeof(Enumerable)
+                    .GetMethods()
+                    .Single(m => m.Name == "ToList" && m.GetParameters().Length == 1)
+                    .MakeGenericMethod(typeof(object));
+
+                dynamic? selectCall = Expression.Call(selectMethod, collectionExpr, selectorLambda);
+                dynamic? toListCall = Expression.Call(toListMethod, selectCall);
+
+                initializers.Add(Expression.ElementInit(addMethod,
+                    Expression.Constant(topName),
+                    Expression.Convert(toListCall, typeof(object))));
+                continue;
+            }
+
+            // 🔹 Otherwise: scalar or nested
             if (!grouped.TryGetValue(topName, out List<string>? nestedList))
                 continue;
 
             List<string>? effectiveNested = nestedList;
 
             if (nestedList == null && config.NestedGroups.TryGetValue(topName, out List<string>? allNested)) {
-                // Full complex, treat as all nested
-                effectiveNested = allNested;
+                effectiveNested = allNested; // treat as all nested
             }
 
             if (effectiveNested == null) {
-                // Primitive or full simple
+                // Primitive
                 string path = topName;
                 if (!config.Mappings.TryGetValue(path, out Expression<Func<TEntity, object?>>? mapExpr)) {
                     throw new InvalidOperationException($"No mapping defined for '{path}'.");
@@ -41,7 +83,7 @@ internal static class ProjectionCompiler {
                 initializers.Add(Expression.ElementInit(addMethod, Expression.Constant(topName), valueExpr));
             }
             else {
-                // Nested (partial or full)
+                // Nested object
                 var nestedInits = new List<ElementInit>();
                 Expression? nullCheck = null;
 
@@ -55,19 +97,34 @@ internal static class ProjectionCompiler {
                     nestedInits.Add(Expression.ElementInit(addMethod, Expression.Constant(nestedName), valueExpr));
 
                     if (nullCheck == null) {
-                        Expression body = mapExpr.Body;
-                        if (body is UnaryExpression ue)
-                            body = ue.Operand;
-                        if (body is MemberExpression me) {
-                            Expression parentExpr =
-                                RebindExpression(
-                                    Expression.Lambda<Func<TEntity, object?>>(me.Expression!, mapExpr.Parameters[0]),
-                                    entity);
-                            nullCheck = Expression.Equal(parentExpr, Expression.Constant(null, typeof(object)));
+                        // unwrap null-forgiving, convert, etc.
+                        static Expression Unwrap(Expression e) {
+                            while (true) {
+                                switch (e) {
+                                    case UnaryExpression u:
+                                        e = u.Operand;
+                                        continue;
+                                    case MemberExpression { Expression: not null } m:
+                                        return m.Expression; // parent (e.g. entity.Milestone)
+                                    default:
+                                        break;
+                                }
+
+                                break;
+                            }
+
+                            return e;
                         }
-                        else {
-                            throw new InvalidOperationException(
-                                $"Complex expression not supported for nested path '{path}'.");
+
+                        Expression? parent = Unwrap(mapExpr.Body);
+                        if (parent != null!) {
+                            Expression parentExpr = RebindExpression(
+                                Expression.Lambda(parent, mapExpr.Parameters[0]),
+                                entity);
+
+                            nullCheck = Expression.Equal(
+                                Expression.Convert(parentExpr, typeof(object)),
+                                Expression.Constant(null, typeof(object)));
                         }
                     }
                 }
@@ -88,15 +145,48 @@ internal static class ProjectionCompiler {
         return lambda;
     }
 
-    private static Expression RebindExpression<TEntity>(Expression<Func<TEntity, object?>> expr,
-        ParameterExpression newParam) {
-        var visitor = new RebindVisitor(expr.Parameters[0], newParam);
-        return visitor.Visit(expr.Body);
+    /// <summary>
+    /// Builds a nested dictionary projection for collection items.
+    /// </summary>
+    private static ListInitExpression BuildNestedProjection<TNestedEntity, TNestedDto>(
+        ParameterExpression itemParam,
+        DtoMappingConfiguration<TNestedEntity, TNestedDto> nestedConfig,
+        List<string> requestedNestedTops)
+        where TNestedDto : class {
+        Type dictType = typeof(Dictionary<string, object?>);
+        MethodInfo addMethod = dictType.GetMethod("Add", [typeof(string), typeof(object)])!;
+
+        var nestedInits = new List<ElementInit>();
+
+        IEnumerable<KeyValuePair<string, Expression<Func<TNestedEntity, object?>>>> targetMapping =
+            nestedConfig.Mappings.Where(nc => requestedNestedTops.Contains(nc.Key, StringComparer.OrdinalIgnoreCase));
+
+        foreach ((string nestedName, Expression<Func<TNestedEntity, object?>> expression) in targetMapping) {
+            Expression valueExpr = RebindExpression(expression, itemParam);
+            nestedInits.Add(Expression.ElementInit(addMethod,
+                Expression.Constant(nestedName),
+                valueExpr));
+        }
+
+        NewExpression nestedDictNew = Expression.New(dictType);
+        return Expression.ListInit(nestedDictNew, nestedInits);
     }
 
-    private sealed class RebindVisitor(ParameterExpression oldParam, ParameterExpression newParam) : ExpressionVisitor {
-        protected override Expression VisitParameter(ParameterExpression node) {
-            return node == oldParam ? newParam : base.VisitParameter(node);
+    private static Expression RebindExpression(LambdaExpression expr, ParameterExpression newParam) {
+        var visitor = new RebindVisitor(expr.Parameters[0], newParam);
+        return visitor.Visit(expr.Body)!;
+    }
+
+    private sealed class RebindVisitor : ExpressionVisitor {
+        private readonly ParameterExpression _oldParam;
+        private readonly ParameterExpression _newParam;
+
+        public RebindVisitor(ParameterExpression oldParam, ParameterExpression newParam) {
+            _oldParam = oldParam;
+            _newParam = newParam;
         }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+            => node == _oldParam ? _newParam : base.VisitParameter(node);
     }
 }

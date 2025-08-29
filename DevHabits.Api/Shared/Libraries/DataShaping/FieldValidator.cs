@@ -95,8 +95,11 @@ internal static class FieldValidator {
 
             string top = parts[0];
 
+            // === Top-level ===
             if (parts.Length == 1) {
-                if (!config.Mappings.ContainsKey(top) && !config.NestedGroups.ContainsKey(top)) {
+                if (!config.Mappings.ContainsKey(top) &&
+                    !config.NestedGroups.ContainsKey(top) &&
+                    !config.CollectionMappings.ContainsKey(top)) {
                     error = $"Field '{token}' is not mapped.";
                     return null;
                 }
@@ -105,32 +108,39 @@ internal static class FieldValidator {
                 continue;
             }
 
+            // === Two-level ===
             if (parts.Length == 2) {
                 string nested = parts[1];
                 string path = $"{top}.{nested}";
-                if (!config.Mappings.ContainsKey(path)) {
+
+                // check primitive/complex mapping
+                bool isValid =
+                    config.Mappings.ContainsKey(path) ||
+                    config.CollectionMappings.TryGetValue(top, out CollectionMapping? collection)
+                && ((dynamic)collection.NestedConfig).Mappings.ContainsKey(path);
+
+                if (!isValid) {
                     error = $"Field '{token}' is not mapped.";
                     return null;
                 }
 
                 if (grouped.TryGetValue(top, out List<string>? list)) {
-                    // Already full complex, skip
-                    if (list == null!) {
+                    // already marked as "full include"
+                    if (list == null!)
                         continue;
-                    }
                 }
                 else {
                     list = [];
                     grouped[top] = list;
                 }
 
-                if (!list.Contains(nested, StringComparer.OrdinalIgnoreCase)) {
+                if (!list.Contains(nested, StringComparer.OrdinalIgnoreCase))
                     list.Add(nested);
-                }
 
                 continue;
             }
 
+            // === More than two levels not supported ===
             error = $"Field '{token}' depth > 2 is not supported.";
             return null;
         }

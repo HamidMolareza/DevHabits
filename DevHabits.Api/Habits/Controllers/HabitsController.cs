@@ -33,18 +33,22 @@ public class HabitsController(
 
     // GET: Habits/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<HabitWithTagsResponse>> GetHabit(string id, CancellationToken cancellationToken) {
-        HabitWithTagsResponse? habit = await context.Habits
+    public async Task<ActionResult> GetHabit(
+        string id,
+        string? fields,
+        string? excludeFields,
+        CancellationToken cancellationToken) {
+        object? habit = await context.Habits
             .Where(habit => habit.Id == id)
             .Include(habit => habit.HabitTags)
             .ThenInclude(ht => ht.Tag)
-            .Select(HabitQueries.ProjectToHabitWithTagsDto())
+            .ShapeFields(fields, excludeFields, dataShapeMapping.Get<Habit, HabitWithTagsResponse>())
             .FirstOrDefaultAsync(cancellationToken);
 
         if (habit == null)
             return NotFoundProblem(resource: "Habit", resourceId: id);
 
-        return habit;
+        return Ok(habit);
     }
 
     // PUT: Habits/5
