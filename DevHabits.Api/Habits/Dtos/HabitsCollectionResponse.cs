@@ -5,5 +5,5 @@ namespace DevHabits.Api.Habits.Dtos;
 
 public sealed record HabitsCollectionResponse {
     public required IEnumerable<object> Data { get; init; }
-    public required ReadOnlyDictionary<string, LinkDto> Links { get; init; }
+    public ReadOnlyDictionary<string, LinkDto>? Links { get; init; }
 }

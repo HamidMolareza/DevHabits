@@ -6,6 +6,7 @@ using DevHabits.Api.Shared.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
+using DevHabits.Api.Shared.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,10 @@ public class HabitsController(
             .ApplySort(query.Sort, sortConfigs.Get<Habit>())
             .ShapeFields(query.Fields, query.ExcludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
             .ToListAsync(cancellationToken);
+
+        if (!HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
+            return new HabitsCollectionResponse { Data = habitDtos };
+        }
 
         foreach (object habitDto in habitDtos) {
             ((Dictionary<string, object>)habitDto)["Links"] =
@@ -53,7 +58,9 @@ public class HabitsController(
         if (habit == null)
             return NotFoundProblem(resource: "Habit", resourceId: id);
 
-        ((Dictionary<string, object>)habit)["Links"] = CreateLinksForHabit(id, fields).Links;
+        if (HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
+            ((Dictionary<string, object>)habit)["Links"] = CreateLinksForHabit(id, fields).Links;
+        }
 
         return Ok(habit);
     }
@@ -87,7 +94,10 @@ public class HabitsController(
         await context.SaveChangesAsync(cancellationToken);
 
         var habitResponse = habit.ToHabitResponse();
-        habitResponse.Links = CreateLinksForHabit(habit.Id).Links;
+
+        if (HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
+            habitResponse.Links = CreateLinksForHabit(habit.Id).Links;
+        }
 
         return CreatedAtAction("GetHabit", new { id = habitResponse.Id }, habitResponse);
     }

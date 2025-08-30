@@ -7,6 +7,7 @@ using DevHabits.Api.Shared.Libraries.FluentValidationHelpers;
 using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
 using DevHabits.Api.Shared.Middlewares;
+using DevHabits.Api.Shared.Options;
 using DevHabits.Api.Shared.ServiceCollections;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;
@@ -19,6 +20,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers(options => {
     options.Filters.Add<FluentValidationFilter>();
 });
+
+builder.Services.AddHateoas(AppOptions.ApplicationName);
 
 builder.Services.AddOpenApi();
 
