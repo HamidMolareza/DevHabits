@@ -52,22 +52,20 @@ public sealed class HabitResponseDataShapingConfigurator : IDataShapingConfigura
             dto => dto.Type,
             entity => entity.Type
         );
-        configuration.Map(
-            dto => dto.Frequency.Type,
-            entity => entity.Frequency.Type
-        );
-        configuration.Map(
-            dto => dto.Frequency.TimesPerPeriod,
-            entity => entity.Frequency.TimesPerPeriod
-        );
-        configuration.Map(
-            dto => dto.Target.Value,
-            entity => entity.Target.Value
-        );
-        configuration.Map(
-            dto => dto.Target.Unit,
-            entity => entity.Target.Unit
-        );
+        configuration.MapComplex(
+            dto => dto.Frequency,
+            entity => entity.Frequency,
+            milestone => {
+                milestone.Map(d => d.Type, e => e.Type);
+                milestone.Map(d => d.TimesPerPeriod, e => e.TimesPerPeriod);
+            });
+        configuration.MapComplex(
+            dto => dto.Target,
+            entity => entity.Target,
+            milestone => {
+                milestone.Map(d => d.Value, e => e.Value);
+                milestone.Map(d => d.Unit, e => e.Unit);
+            });
         configuration.Map(
             dto => dto.Status,
             entity => entity.Status
@@ -80,14 +78,13 @@ public sealed class HabitResponseDataShapingConfigurator : IDataShapingConfigura
             dto => dto.EndDate,
             entity => entity.EndDate
         );
-        configuration.Map(
-            dto => dto.Milestone!.Target,
-            entity => entity.Milestone!.Target
-        );
-        configuration.Map(
-            dto => dto.Milestone!.Current,
-            entity => entity.Milestone!.Current
-        );
+        configuration.MapComplex(
+            dto => dto.Milestone!,
+            entity => entity.Milestone!,
+            milestone => {
+                milestone.Map(d => d.Target, e => e.Target);
+                milestone.Map(d => d.Current, e => e.Current);
+            });
         configuration.Map(
             dto => dto.CreatedAtUtc,
             entity => entity.CreatedAtUtc
