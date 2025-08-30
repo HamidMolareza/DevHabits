@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using DevHabits.Api.Habits.Dtos;
 using DevHabits.Api.Habits.Options;
-using DevHabits.Api.Middlewares;
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.FluentValidationHelpers;
 using DevHabits.Api.Shared.Libraries.Sort;
+using DevHabits.Api.Shared.Middlewares;
 using DevHabits.Api.Shared.ServiceCollections;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;

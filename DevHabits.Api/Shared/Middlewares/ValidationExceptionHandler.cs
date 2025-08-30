@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DevHabits.Api.Middlewares;
+namespace DevHabits.Api.Shared.Middlewares;
 
 public sealed class ValidationExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler {
     public async ValueTask<bool> TryHandleAsync(
