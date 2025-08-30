@@ -21,7 +21,8 @@ builder.Services.AddControllers(options => {
     options.Filters.Add<FluentValidationFilter>();
 });
 
-builder.Services.AddHateoas(AppOptions.ApplicationName);
+builder.Services.AddHateoas(AppOptions.ApplicationName)
+    .AddSingleton<IHateoasService, HateoasService>(_ => new HateoasService(AppOptions.ApplicationName));
 
 builder.Services.AddOpenApi();
 

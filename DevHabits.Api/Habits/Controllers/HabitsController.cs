@@ -6,7 +6,6 @@ using DevHabits.Api.Shared.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
-using DevHabits.Api.Shared.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +16,8 @@ public class HabitsController(
     ApplicationDbContext context,
     SortConfigs sortConfigs,
     DataShapeMapping dataShapeMapping,
-    LinkService linkService
+    LinkService linkService,
+    IHateoasService hateoasService
 ) : BaseApiController {
     // GET: Habits
     [HttpGet]
@@ -29,16 +29,18 @@ public class HabitsController(
             .ShapeFields(query.Fields, query.ExcludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
             .ToListAsync(cancellationToken);
 
-        if (!HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
-            return new HabitsCollectionResponse { Data = habitDtos };
-        }
-
-        foreach (object habitDto in habitDtos) {
+        hateoasService.Wrap(HttpContext.Request, habitDtos, habitDto => {
             ((Dictionary<string, object>)habitDto)["Links"] =
                 CreateLinksForHabit(((Dictionary<string, object>)habitDto)["Id"].ToString()!).Links;
-        }
+        });
 
-        return new HabitsCollectionResponse { Data = habitDtos, Links = CreateLinksForHabits(query).Links };
+        var response = new HabitsCollectionResponse { Data = habitDtos };
+
+        hateoasService.Wrap(HttpContext.Request, response, res => {
+            res.Links = CreateLinksForHabits(query).Links;
+        });
+
+        return response;
     }
 
     // GET: Habits/5
@@ -58,9 +60,9 @@ public class HabitsController(
         if (habit == null)
             return NotFoundProblem(resource: "Habit", resourceId: id);
 
-        if (HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
-            ((Dictionary<string, object>)habit)["Links"] = CreateLinksForHabit(id, fields).Links;
-        }
+        hateoasService.Wrap(HttpContext.Request, (Dictionary<string, object>)habit, h => {
+            h["Links"] = CreateLinksForHabit(id, fields).Links;
+        });
 
         return Ok(habit);
     }
@@ -95,9 +97,9 @@ public class HabitsController(
 
         var habitResponse = habit.ToHabitResponse();
 
-        if (HttpContext.Request.WantsHateoas(AppOptions.ApplicationName)) {
-            habitResponse.Links = CreateLinksForHabit(habit.Id).Links;
-        }
+        hateoasService.Wrap(HttpContext.Request, habitResponse, h => {
+            h.Links = CreateLinksForHabit(h.Id).Links;
+        });
 
         return CreatedAtAction("GetHabit", new { id = habitResponse.Id }, habitResponse);
     }
