@@ -1,5 +1,7 @@
-﻿using DevHabits.Api.Habits.Entities;
+﻿using System.Collections.ObjectModel;
+using DevHabits.Api.Habits.Entities;
 using DevHabits.Api.Shared.Libraries.DataShaping;
+using DevHabits.Api.Shared.Libraries.Hateoas;
 
 namespace DevHabits.Api.Habits.Dtos;
 
@@ -17,6 +19,7 @@ public sealed record HabitResponse {
     public required DateTime CreatedAtUtc { get; init; }
     public DateTime? UpdatedAtUtc { get; init; }
     public DateTime? LastCompletedAtUtc { get; init; }
+    public ReadOnlyDictionary<string, LinkDto>? Links { get; set; }
 }
 
 public sealed record FrequencyDto {
@@ -39,7 +42,7 @@ public sealed class HabitResponseDataShapingConfigurator : IDataShapingConfigura
         configuration.Map(
             dto => dto.Id,
             entity => entity.Id
-        );
+        ); //TODO: Create .Required() method to enforce a prop always should be include;
         configuration.Map(
             dto => dto.Name,
             entity => entity.Name

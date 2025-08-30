@@ -4,6 +4,7 @@ using DevHabits.Api.Habits.Options;
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.DataShaping;
 using DevHabits.Api.Shared.Libraries.FluentValidationHelpers;
+using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
 using DevHabits.Api.Shared.Middlewares;
 using DevHabits.Api.Shared.ServiceCollections;
@@ -42,6 +43,9 @@ builder.Services
     .AddExceptionHandler<ValidationExceptionHandler>()
     .AddExceptionHandler<SortExceptionHandler>()
     .AddExceptionHandler<ShapeDataExceptionHandler>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<LinkService>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("default"),

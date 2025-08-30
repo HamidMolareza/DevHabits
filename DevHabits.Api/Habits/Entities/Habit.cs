@@ -1,3 +1,4 @@
+using DevHabits.Api.Habits.Dtos;
 using DevHabits.Api.HabitTags.Entities;
 
 namespace DevHabits.Api.Habits.Entities;
@@ -18,6 +19,35 @@ public sealed class Habit {
     public DateTime? LastCompletedAtUtc { get; set; }
 
     public ICollection<HabitTag> HabitTags { get; set; } = null!;
+
+    public HabitResponse ToHabitResponse() {
+        return new HabitResponse {
+            Id = Id,
+            Name = Name,
+            Description = Description,
+            Type = Type,
+            Frequency = new FrequencyDto {
+                Type = Frequency.Type,
+                TimesPerPeriod = Frequency.TimesPerPeriod
+            },
+            Target = new TargetDto {
+                Value = Target.Value,
+                Unit = Target.Unit
+            },
+            Status = Status,
+            IsArchived = IsArchived,
+            EndDate = EndDate,
+            Milestone = Milestone == null
+                ? null
+                : new MilestoneDto {
+                    Target = Milestone.Target,
+                    Current = Milestone.Current
+                },
+            CreatedAtUtc = CreatedAtUtc,
+            UpdatedAtUtc = UpdatedAtUtc,
+            LastCompletedAtUtc = LastCompletedAtUtc
+        };
+    }
 }
 
 public enum HabitType {

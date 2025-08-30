@@ -4,6 +4,7 @@ using DevHabits.Api.Habits.Mappings;
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.BaseApiControllers;
 using DevHabits.Api.Shared.Libraries.DataShaping;
+using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,26 +15,30 @@ namespace DevHabits.Api.Habits.Controllers;
 public class HabitsController(
     ApplicationDbContext context,
     SortConfigs sortConfigs,
-    DataShapeMapping dataShapeMapping
+    DataShapeMapping dataShapeMapping,
+    LinkService linkService
 ) : BaseApiController {
     // GET: Habits
     [HttpGet]
     public async Task<ActionResult<HabitsCollectionResponse>> GetHabits(
-        string? sort,
-        string? fields,
-        string? excludeFields,
+        [FromQuery] GetHabitQueryParams query,
         CancellationToken cancellationToken) {
         List<object> habitDtos = await context.Habits
-            .ApplySort(sort, sortConfigs.Get<Habit>())
-            .ShapeFields(fields, excludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
+            .ApplySort(query.Sort, sortConfigs.Get<Habit>())
+            .ShapeFields(query.Fields, query.ExcludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
             .ToListAsync(cancellationToken);
 
-        return new HabitsCollectionResponse { Data = habitDtos };
+        foreach (object habitDto in habitDtos) {
+            ((Dictionary<string, object>)habitDto)["Links"] =
+                CreateLinksForHabit(((Dictionary<string, object>)habitDto)["Id"].ToString()!).Links;
+        }
+
+        return new HabitsCollectionResponse { Data = habitDtos, Links = CreateLinksForHabits(query).Links };
     }
 
     // GET: Habits/5
     [HttpGet("{id}")]
-    public async Task<ActionResult> GetHabit(
+    public async Task<ActionResult<HabitWithTagsResponse>> GetHabit(
         string id,
         string? fields,
         string? excludeFields,
@@ -47,6 +52,8 @@ public class HabitsController(
 
         if (habit == null)
             return NotFoundProblem(resource: "Habit", resourceId: id);
+
+        ((Dictionary<string, object>)habit)["Links"] = CreateLinksForHabit(id, fields).Links;
 
         return Ok(habit);
     }
@@ -79,7 +86,10 @@ public class HabitsController(
         context.Habits.Add(habit);
         await context.SaveChangesAsync(cancellationToken);
 
-        return CreatedAtAction("GetHabit", new { id = habit.Id }, habit);
+        var habitResponse = habit.ToHabitResponse();
+        habitResponse.Links = CreateLinksForHabit(habit.Id).Links;
+
+        return CreatedAtAction("GetHabit", new { id = habitResponse.Id }, habitResponse);
     }
 
     // DELETE: Habits/5
@@ -97,5 +107,20 @@ public class HabitsController(
         }
 
         return NoContent();
+    }
+
+    private LinkCollections CreateLinksForHabit(string id, string? fields = null) {
+        LinkCollections linkCollections = new LinkCollections()
+            .AddSelf(linkService.CreateGet(nameof(GetHabit), new { id, fields }))
+            .AddUpdate(linkService.CreatePut(nameof(PutHabit), new { id }))
+            .AddDelete(linkService.CreateDelete(nameof(DeleteHabit), new { id }));
+        return linkCollections;
+    }
+
+    private LinkCollections CreateLinksForHabits(GetHabitQueryParams query) {
+        LinkCollections linkCollections = new LinkCollections()
+            .AddSelf(linkService.CreateGet(nameof(GetHabits), new { query.Fields, query.Sort, query.ExcludeFields }))
+            .AddCreate(linkService.CreatePost(nameof(PostHabit)));
+        return linkCollections;
     }
 }
