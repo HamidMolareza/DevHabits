@@ -21,7 +21,7 @@ builder.Services.AddControllers(options => {
 
 builder.Services.AddOpenApi();
 
-builder.Services.AddSortOptionsFromAssemblyContaining<HabitSortOptionsProvider>();
+builder.Services.AddSingleton(new SortConfigs(typeof(HabitSortOptionsProvider).Assembly));
 
 builder.Services.AddSingleton(new DataShapeMapping(typeof(HabitResponseDataShapingConfigurator).Assembly));
 

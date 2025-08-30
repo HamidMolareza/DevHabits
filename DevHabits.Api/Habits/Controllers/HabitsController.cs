@@ -13,7 +13,7 @@ namespace DevHabits.Api.Habits.Controllers;
 [Route("habits")]
 public class HabitsController(
     ApplicationDbContext context,
-    ISortOptionsProvider<Habit> habitSort,
+    SortConfigs sortConfigs,
     DataShapeMapping dataShapeMapping
 ) : BaseApiController {
     // GET: Habits
@@ -24,7 +24,7 @@ public class HabitsController(
         string? excludeFields,
         CancellationToken cancellationToken) {
         List<object> habitDtos = await context.Habits
-            .ApplySort(sort, habitSort.GetOptions())
+            .ApplySort(sort, sortConfigs.Get<Habit>())
             .ShapeFields(fields, excludeFields, dataShapeMapping.Get<Habit, HabitResponse>())
             .ToListAsync(cancellationToken);
 

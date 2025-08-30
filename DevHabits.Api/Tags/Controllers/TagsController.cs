@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DevHabits.Api.Tags.Controllers;
 
 [Route("tags")]
-public class TagsController(ApplicationDbContext context, ISortOptionsProvider<Tag> tagSortProvider)
+public class TagsController(ApplicationDbContext context, SortConfigs sortConfigs)
     : BaseApiController {
     // GET: Tags
     [HttpGet]
@@ -19,7 +19,7 @@ public class TagsController(ApplicationDbContext context, ISortOptionsProvider<T
         CancellationToken cancellationToken
     ) {
         List<TagResponse> tagDtos = await context.Tags
-            .ApplySort(sort, tagSortProvider.GetOptions())
+            .ApplySort(sort, sortConfigs.Get<Tag>())
             .Select(TagQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
         return new TagsCollectionResponse { Data = tagDtos };
