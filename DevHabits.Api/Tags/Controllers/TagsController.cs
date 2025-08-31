@@ -1,5 +1,6 @@
 using DevHabits.Api.Shared.Database;
 using DevHabits.Api.Shared.Libraries.BaseApiControllers;
+using DevHabits.Api.Shared.Libraries.Hateoas;
 using DevHabits.Api.Shared.Libraries.Sort;
 using DevHabits.Api.Tags.Dtos;
 using DevHabits.Api.Tags.Entities;
@@ -10,8 +11,15 @@ using Microsoft.EntityFrameworkCore;
 namespace DevHabits.Api.Tags.Controllers;
 
 [Route("tags")]
-public class TagsController(ApplicationDbContext context, SortConfigs sortConfigs)
+public class TagsController(
+    ApplicationDbContext context,
+    SortConfigs sortConfigs,
+    IHateoasService hateoasService,
+    LinkService linkService
+)
     : BaseApiController {
+    private const int MaxTags = 5;
+
     // GET: Tags
     [HttpGet]
     public async Task<ActionResult<TagsCollectionResponse>> GetTags(
@@ -22,7 +30,17 @@ public class TagsController(ApplicationDbContext context, SortConfigs sortConfig
             .ApplySort(sort, sortConfigs.Get<Tag>())
             .Select(TagQueries.ProjectToDto())
             .ToListAsync(cancellationToken);
-        return new TagsCollectionResponse { Data = tagDtos };
+
+        hateoasService.Wrap(HttpContext.Request, tagDtos, tagDto => {
+            tagDto.Links = CreateLinksForTag(tagDto.Id).Links;
+        });
+
+        var response = new TagsCollectionResponse { Data = tagDtos };
+
+        hateoasService.Wrap(HttpContext.Request, response, res => {
+            res.Links = CreateLinksForTags(tagDtos.Count).Links;
+        });
+        return response;
     }
 
     // GET: Tags/5
@@ -61,6 +79,11 @@ public class TagsController(ApplicationDbContext context, SortConfigs sortConfig
     [HttpPost]
     public async Task<ActionResult<TagResponse>> PostTag(CreateTagRequest tagRequest,
         CancellationToken cancellationToken) {
+        if (await context.Tags.CountAsync(cancellationToken) >= MaxTags) {
+            return BadRequestProblem(
+                $"The maximum number of tags ({MaxTags}) has been reached. Please delete an existing tag before creating a new one.");
+        }
+
         Tag tag = tagRequest.ToEntity();
 
         if (await context.Tags.AnyAsync(t => EF.Functions.Like(t.Name, tag.Name), cancellationToken)) {
@@ -89,5 +112,23 @@ public class TagsController(ApplicationDbContext context, SortConfigs sortConfig
         }
 
         return NoContent();
+    }
+
+    private LinkCollections CreateLinksForTag(string id) {
+        LinkCollections linkCollections = new LinkCollections()
+            .AddSelf(linkService.CreateGet(nameof(GetTag), new { id }))
+            .AddUpdate(linkService.CreatePut(nameof(PutTag), new { id }))
+            .AddDelete(linkService.CreateDelete(nameof(DeleteTag), new { id }));
+        return linkCollections;
+    }
+
+    private LinkCollections CreateLinksForTags(int tagsCount) {
+        LinkCollections linkCollections = new LinkCollections()
+            .AddSelf(linkService.CreateGet(nameof(GetTags)));
+
+        if (tagsCount < MaxTags)
+            linkCollections.AddCreate(linkService.CreatePost(nameof(PostTag)));
+
+        return linkCollections;
     }
 }
